@@ -89,6 +89,7 @@ public class PolarWriter {
         }
 
         writeByteArray(chunk.userData(), bb);
+        writeByteArray(chunk.persistentDataContainer(), bb);
     }
 
     private static void writeSection(@NotNull ByteArrayDataOutput bb, @NotNull PolarSection section) {

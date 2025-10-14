@@ -139,6 +139,14 @@ public class PolarReader {
             userData = bytes;
         }
 
+        byte[] persistentDataContainerBytes = new byte[0];
+        if (version >= PolarWorld.VERSION_PERSISTENT_DATA_CONTAINER) {
+            int persistentDataContainerLength = getVarInt(bb);
+            byte[] bytes = new byte[persistentDataContainerLength];
+            bb.readBytes(bytes);
+            persistentDataContainerBytes = bytes;
+        }
+
         if (entities != null) {
             ByteArrayDataOutput newData = ByteStreams.newDataOutput();
             newData.writeByte((byte) 1);
@@ -152,7 +160,8 @@ public class PolarReader {
                 sections,
                 blockEntities,
                 heightmaps,
-                userData
+                userData,
+                persistentDataContainerBytes
         );
     }
 

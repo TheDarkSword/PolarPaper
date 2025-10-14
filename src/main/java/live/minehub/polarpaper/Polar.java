@@ -50,6 +50,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.world.WorldLoadEvent;
 import org.bukkit.generator.BiomeProvider;
 import org.bukkit.generator.ChunkGenerator;
+import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -58,6 +59,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.logging.Level;
 
 public class Polar {
 
@@ -550,6 +552,7 @@ public class Polar {
         int maxHeight = chunk.getWorld().getMaxHeight();
         Set<Map.Entry<BlockPos, BlockEntity>> blockEntities = craftChunk.getHandle(ChunkStatus.FULL).blockEntities.entrySet();
         Entity[] entities = Arrays.copyOf(craftChunk.getEntities(), craftChunk.getEntities().length);
+        PersistentDataContainer persistentDataContainer = chunk.getPersistentDataContainer();
 
         int worldHeight = maxHeight - minHeight + 1; // I hate paper
         int sectionCount = worldHeight / 16;
@@ -578,12 +581,12 @@ public class Polar {
         }
 
         return CompletableFuture.runAsync(() -> {
-            PolarChunk polarChunk = createPolarChunk(worldAccess, snapshot, newChunkX, newChunkZ, minHeight, maxHeight, blockEntities, entities);
+            PolarChunk polarChunk = createPolarChunk(worldAccess, snapshot, newChunkX, newChunkZ, minHeight, maxHeight, blockEntities, entities, persistentDataContainer);
             polarWorld.updateChunkAt(newChunkX, newChunkZ, polarChunk);
         });
     }
 
-    public static PolarChunk createPolarChunk(PolarWorldAccess worldAccess, ChunkSnapshot snapshot, int newChunkX, int newChunkZ, int minHeight, int maxHeight, Set<Map.Entry<BlockPos, BlockEntity>> blockEntities, Entity[] entities) {
+    public static PolarChunk createPolarChunk(PolarWorldAccess worldAccess, ChunkSnapshot snapshot, int newChunkX, int newChunkZ, int minHeight, int maxHeight, Set<Map.Entry<BlockPos, BlockEntity>> blockEntities, Entity[] entities, PersistentDataContainer persistentDataContainer) {
         List<PolarChunk.BlockEntity> polarBlockEntities = new ArrayList<>();
 
         int worldHeight = maxHeight - minHeight + 1; // I hate paper
@@ -673,6 +676,13 @@ public class Polar {
         ByteArrayDataOutput userDataOutput = ByteStreams.newDataOutput();
         worldAccess.saveChunkData(snapshot, blockEntities, entities, userDataOutput);
         byte[] userData = userDataOutput.toByteArray();
+        byte[] persistentDataContainerBytes;
+        try {
+            persistentDataContainerBytes = persistentDataContainer.serializeToBytes();
+        } catch (IOException e) {
+            PolarPaper.logger().log(Level.SEVERE, "Failed to serialize persistent data container for chunk at " + newChunkX + ", " + newChunkZ, e);
+            persistentDataContainerBytes = new byte[0];
+        }
 
         return new PolarChunk(
                 newChunkX,
@@ -680,7 +690,8 @@ public class Polar {
                 sections,
                 polarBlockEntities,
                 heightMaps,
-                userData
+                userData,
+                persistentDataContainerBytes
         );
     }
 
