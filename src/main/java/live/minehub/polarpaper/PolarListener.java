@@ -24,14 +24,6 @@ public class PolarListener implements Listener {
         if (chunk.userData().length > 0) {
             worldAccess.populateChunkData(event.getChunk(), chunk.userData());
         }
-        if (chunk.persistentDataContainer().length > 0) {
-            try {
-                event.getChunk().getPersistentDataContainer().readFromBytes(chunk.persistentDataContainer(), true);
-            } catch (IOException e) {
-                PolarPaper.logger().log(Level.WARNING, "Failed to read persistent data container for chunk at " +
-                        event.getChunk().getX() + ", " + event.getChunk().getZ(), e);
-            }
-        }
     }
 
 }

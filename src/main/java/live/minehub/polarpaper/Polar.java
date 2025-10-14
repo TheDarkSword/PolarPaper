@@ -674,15 +674,8 @@ public class Polar {
         worldAccess.saveHeightmaps(snapshot, heightMaps);
 
         ByteArrayDataOutput userDataOutput = ByteStreams.newDataOutput();
-        worldAccess.saveChunkData(snapshot, blockEntities, entities, userDataOutput);
+        worldAccess.saveChunkData(snapshot, blockEntities, entities, persistentDataContainer, userDataOutput);
         byte[] userData = userDataOutput.toByteArray();
-        byte[] persistentDataContainerBytes;
-        try {
-            persistentDataContainerBytes = persistentDataContainer.serializeToBytes();
-        } catch (IOException e) {
-            PolarPaper.logger().log(Level.SEVERE, "Failed to serialize persistent data container for chunk at " + newChunkX + ", " + newChunkZ, e);
-            persistentDataContainerBytes = new byte[0];
-        }
 
         return new PolarChunk(
                 newChunkX,
@@ -690,8 +683,7 @@ public class Polar {
                 sections,
                 polarBlockEntities,
                 heightMaps,
-                userData,
-                persistentDataContainerBytes
+                userData
         );
     }
 

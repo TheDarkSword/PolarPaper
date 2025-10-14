@@ -41,10 +41,8 @@ public class EntityUtil {
 
     }
 
-    public static List<PolarChunk.Entity> getEntities(byte @Nullable [] userData) {
-        if (userData == null) return List.of();
-
-        final var bb = ByteBuffer.wrap(userData);
+    public static List<PolarChunk.Entity> getEntities(@Nullable ByteBuffer bb) {
+        if (bb == null) return List.of();
 
         // Skip the version
         bb.get();

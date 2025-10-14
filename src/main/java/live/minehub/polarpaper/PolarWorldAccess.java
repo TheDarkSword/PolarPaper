@@ -2,6 +2,7 @@ package live.minehub.polarpaper;
 
 import com.google.common.io.ByteArrayDataOutput;
 import live.minehub.polarpaper.util.EntityUtil;
+import live.minehub.polarpaper.util.PersistentDataContainerUtil;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import org.bukkit.Chunk;
@@ -10,14 +11,18 @@ import org.bukkit.Location;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Painting;
 import org.bukkit.generator.ChunkGenerator;
+import org.bukkit.persistence.PersistentDataContainer;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Level;
 
 /**
  * Provides access to user world data for the polar loader to get and set user
@@ -40,7 +45,13 @@ public interface PolarWorldAccess {
 
         @Override
         public void populateChunkData(@NotNull final Chunk chunk, final byte @Nullable [] userData) {
-            List<PolarChunk.Entity> entities = EntityUtil.getEntities(userData);
+            ByteBuffer bb;
+            if (userData == null) {
+                bb = null;
+            } else {
+                bb = ByteBuffer.wrap(userData);
+            }
+            List<PolarChunk.Entity> entities = EntityUtil.getEntities(bb);
 
             for (PolarChunk.Entity polarEntity : entities) {
                 var x = polarEntity.x();
@@ -66,12 +77,23 @@ public interface PolarWorldAccess {
 
                 entity.spawnAt(new Location(chunk.getWorld(), x + chunk.getX() * 16, y, z + chunk.getZ() * 16, yaw, pitch));
             }
+
+            byte[] persistentDataContainerBytes = PersistentDataContainerUtil.getPersistentDataContainer(bb);
+            if(persistentDataContainerBytes.length > 0) {
+                try {
+                    chunk.getPersistentDataContainer().readFromBytes(persistentDataContainerBytes, true);
+                } catch (IOException e) {
+                    PolarPaper.logger().log(Level.WARNING, "Failed to read persistent data container for chunk at " +
+                            chunk.getX() + ", " + chunk.getZ() + " in world " + chunk.getWorld().getName(), e);
+                }
+            }
         }
 
         @Override
         public void saveChunkData(@NotNull ChunkSnapshot chunk,
                                   @NotNull Set<Map.Entry<BlockPos, BlockEntity>> blockEntities,
-                                  @NotNull Entity[] entities, @NotNull ByteArrayDataOutput userData) {
+                                  @NotNull Entity[] entities,  @NotNull PersistentDataContainer persistentDataContainer,
+                                  @NotNull ByteArrayDataOutput userData) {
             List<PolarChunk.Entity> polarEntities = new ArrayList<>();
 
             for (@NotNull Entity entity : entities) {
@@ -94,6 +116,7 @@ public interface PolarWorldAccess {
 
             userData.writeByte(CURRENT_FEATURES_VERSION);
             EntityUtil.writeEntities(polarEntities, userData);
+            PersistentDataContainerUtil.writePersistentDataContainer(chunk, persistentDataContainer, userData);
         }
 
     };
@@ -155,6 +178,7 @@ public interface PolarWorldAccess {
      */
     default void saveChunkData(@NotNull ChunkSnapshot chunk,
                                @NotNull Set<Map.Entry<BlockPos, BlockEntity>> blockEntities, @NotNull Entity[] entities,
+                               @NotNull PersistentDataContainer persistentDataContainer,
                                @NotNull ByteArrayDataOutput userData) {
     }
 

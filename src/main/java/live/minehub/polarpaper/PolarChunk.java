@@ -12,8 +12,7 @@ public record PolarChunk(
         PolarSection[] sections,
         List<BlockEntity> blockEntities,
         int[][] heightmaps,
-        byte[] userData,
-        byte[] persistentDataContainer
+        byte[] userData
 ) {
 
     public static final int HEIGHTMAP_NONE = 0b0;
@@ -48,7 +47,7 @@ public record PolarChunk(
 
     public PolarChunk(int x, int z, int sectionCount) {
         // Blank chunk
-        this(x, z, new PolarSection[sectionCount], List.of(), new int[PolarChunk.MAX_HEIGHTMAPS][0], new byte[0], new byte[0]);
+        this(x, z, new PolarSection[sectionCount], List.of(), new int[PolarChunk.MAX_HEIGHTMAPS][0], new byte[0]);
         Arrays.setAll(sections, (i) -> new PolarSection());
     }
 
