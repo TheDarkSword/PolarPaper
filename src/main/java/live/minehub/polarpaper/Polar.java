@@ -105,10 +105,6 @@ public class Polar {
     public static void loadWorld(@NotNull PolarWorld world, @NotNull String worldName, @NotNull PolarWorldAccess worldAccess) {
         FileConfiguration fileConfig = PolarPaper.getPlugin().getConfig();
         Config config = Config.readFromConfig(fileConfig, worldName); // If world not in config, use defaults
-        if (config == null) {
-            PolarPaper.logger().warning("Polar world '" + worldName + "' has an invalid config");
-            return;
-        }
         loadWorld(world, worldName, config, worldAccess);
     }
 
@@ -180,8 +176,7 @@ public class Polar {
 
     public static Config updateConfig(World world, String worldName) {
         FileConfiguration fileConfig = PolarPaper.getPlugin().getConfig();
-        Config config = Config.readFromConfig(fileConfig, worldName); // If world not in config, use defaults
-        if (config == null) return Config.DEFAULT;
+        Config config = Config.readFromConfig(fileConfig, worldName, Config.getDefaultConfig(world)); // If world not in config, use defaults
 
         // Add gamerules from world into config
         List<Config.GameRule> gameruleList = new ArrayList<>();
@@ -237,15 +232,11 @@ public class Polar {
     public static CompletableFuture<Boolean> loadWorldConfigSource(@NotNull String worldName, @NotNull PolarWorldAccess worldAccess) {
         FileConfiguration fileConfig = PolarPaper.getPlugin().getConfig();
         Config config = Config.readFromConfig(fileConfig, worldName); // If world not in config, use defaults
-        if (config == null) {
-            PolarPaper.logger().warning("Polar world '" + worldName + "' has an invalid config, skipping.");
-            return CompletableFuture.completedFuture(false);
-        }
 
         PolarSource source = PolarSource.fromConfig(worldName, config);
 
         if (source == null) {
-            PolarPaper.logger().warning("Source " + config.source() + " not recognised");
+            PolarPaper.logger().warning("Source '" + config.source() + "' not recognised");
             return CompletableFuture.completedFuture(false);
         }
 

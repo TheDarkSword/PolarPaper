@@ -36,8 +36,8 @@ public class PolarWorld {
     private CompressionType compression;
 
     // World metadata
-    private byte minSection;
-    private byte maxSection;
+    private final byte minSection;
+    private final byte maxSection;
     private byte @NotNull [] userData;
 
     // Chunk data
@@ -45,8 +45,8 @@ public class PolarWorld {
     private final LongArraySet expandChunks = new LongArraySet();
     private final ReentrantReadWriteLock chunksLock = new ReentrantReadWriteLock();
 
-    public PolarWorld() {
-        this(LATEST_VERSION, Bukkit.getUnsafe().getDataVersion(), DEFAULT_COMPRESSION, (byte) -4, (byte) 19, new byte[0], List.of());
+    public PolarWorld(byte minSection, byte maxSection) {
+        this(LATEST_VERSION, Bukkit.getUnsafe().getDataVersion(), DEFAULT_COMPRESSION, minSection, maxSection, new byte[0], List.of());
     }
 
     public PolarWorld(

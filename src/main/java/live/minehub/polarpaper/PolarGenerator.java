@@ -48,7 +48,7 @@ public class PolarGenerator extends ChunkGenerator {
 
         int i = 0;
         for (PolarSection section : chunk.sections()) {
-            int yLevel = chunkData.getMinHeight() + (i++) * CHUNK_SECTION_SIZE;
+            int yLevel = CoordConversion.sectionIndexToY(polarWorld.minSection() + i++);
             loadSection(section, yLevel, chunkData);
         }
 

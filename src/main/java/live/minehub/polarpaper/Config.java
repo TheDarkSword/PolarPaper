@@ -6,7 +6,6 @@ import org.bukkit.World;
 import org.bukkit.WorldType;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -14,7 +13,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
-import java.util.logging.Logger;
 
 public record Config(
         @NotNull String source,
@@ -30,8 +28,6 @@ public record Config(
         @NotNull World.Environment environment,
         @NotNull List<GameRule> gamerules
 ) {
-
-    private static final Logger LOGGER = Logger.getLogger(Config.class.getName());
 
     public static final Config DEFAULT = new Config(
             "file",
@@ -55,6 +51,37 @@ public record Config(
             )
     );
 
+    public static @NotNull Config getDefaultConfig(World world) {
+        // Add gamerules from world into config
+        List<Config.GameRule> gameruleList = new ArrayList<>();
+        for (String name : world.getGameRules()) {
+            org.bukkit.GameRule<?> gamerule = org.bukkit.GameRule.getByName(name);
+            if (gamerule == null) continue;
+
+            Object gameRuleValue = world.getGameRuleValue(gamerule);
+            if (gameRuleValue == null) continue;
+            Object gameRuleDefault = world.getGameRuleDefault(gamerule);
+            if (gameRuleValue != gameRuleDefault) {
+                gameruleList.add(new Config.GameRule(name, gameRuleValue));
+            }
+        }
+
+        return new Config(
+                "file",
+                -1,
+                Config.DEFAULT.saveOnStop,
+                Config.DEFAULT.loadOnStartup,
+                world.getSpawnLocation(),
+                Difficulty.valueOf(world.getDifficulty().name()),
+                world.getAllowMonsters(),
+                world.getAllowAnimals(),
+                Config.DEFAULT.allowWorldExpansion,
+                WorldType.NORMAL,
+                world.getEnvironment(),
+                gameruleList
+        );
+    }
+
     public @NotNull String spawnString() {
         return locationToString(spawn());
     }
@@ -63,21 +90,26 @@ public record Config(
         return new Config(this.source, this.autoSaveIntervalTicks, this.saveOnStop, this.loadOnStartup, location, this.difficulty, this.allowMonsters, this.allowAnimals, this.allowWorldExpansion, this.worldType, this.environment, this.gamerules);
     }
 
-    public static @Nullable Config readFromConfig(FileConfiguration config, String worldName) {
+
+    public static @NotNull Config readFromConfig(FileConfiguration config, String worldName) {
+        return readFromConfig(config, worldName, DEFAULT);
+    }
+
+    public static @NotNull Config readFromConfig(FileConfiguration config, String worldName, Config defaultConfig) {
         String prefix = String.format("worlds.%s.", worldName);
 
         try {
-            String source = config.getString(prefix + "source", DEFAULT.source);
-            int autoSaveIntervalTicks = config.getInt(prefix + "autosaveIntervalTicks", DEFAULT.autoSaveIntervalTicks);
-            boolean saveOnStop = config.getBoolean(prefix + "saveOnStop", DEFAULT.saveOnStop);
-            boolean loadOnStartup = config.getBoolean(prefix + "loadOnStartup", DEFAULT.loadOnStartup);
-            String spawn = config.getString(prefix + "spawn", locationToString(DEFAULT.spawn));
-            Difficulty difficulty = Difficulty.valueOf(config.getString(prefix + "difficulty", DEFAULT.difficulty.name()));
-            boolean allowMonsters = config.getBoolean(prefix + "allowMonsters", DEFAULT.allowMonsters);
-            boolean allowAnimals = config.getBoolean(prefix + "allowAnimals", DEFAULT.allowAnimals);
-            boolean allowWorldExpansion = config.getBoolean(prefix + "allowWorldExpansion", DEFAULT.allowWorldExpansion);
-            WorldType worldType = WorldType.valueOf(config.getString(prefix + "worldType", DEFAULT.worldType.name()));
-            World.Environment environment = World.Environment.valueOf(config.getString(prefix + "environment", DEFAULT.environment.name()));
+            String source = config.getString(prefix + "source", defaultConfig.source);
+            int autoSaveIntervalTicks = config.getInt(prefix + "autosaveIntervalTicks", defaultConfig.autoSaveIntervalTicks);
+            boolean saveOnStop = config.getBoolean(prefix + "saveOnStop", defaultConfig.saveOnStop);
+            boolean loadOnStartup = config.getBoolean(prefix + "loadOnStartup", defaultConfig.loadOnStartup);
+            String spawn = config.getString(prefix + "spawn", locationToString(defaultConfig.spawn));
+            Difficulty difficulty = Difficulty.valueOf(config.getString(prefix + "difficulty", defaultConfig.difficulty.name()));
+            boolean allowMonsters = config.getBoolean(prefix + "allowMonsters", defaultConfig.allowMonsters);
+            boolean allowAnimals = config.getBoolean(prefix + "allowAnimals", defaultConfig.allowAnimals);
+            boolean allowWorldExpansion = config.getBoolean(prefix + "allowWorldExpansion", defaultConfig.allowWorldExpansion);
+            WorldType worldType = WorldType.valueOf(config.getString(prefix + "worldType", defaultConfig.worldType.name()));
+            World.Environment environment = World.Environment.valueOf(config.getString(prefix + "environment", defaultConfig.environment.name()));
 
 
             List<Map<?, ?>> gamerules = config.getMapList(prefix + "gamerules");
@@ -87,7 +119,7 @@ public record Config(
                     gamerulesList.add(new GameRule((String)entry.getKey(), entry.getValue()));
                 }
             }
-            if (gamerules.isEmpty()) gamerulesList.addAll(DEFAULT.gamerules);
+            if (gamerules.isEmpty()) gamerulesList.addAll(defaultConfig.gamerules);
 
 
             return new Config(
@@ -105,9 +137,9 @@ public record Config(
                     gamerulesList
             );
         } catch (IllegalArgumentException e) {
-            PolarPaper.logger().warning("Failed to read config");
-            LOGGER.log(Level.INFO, e.getMessage(), e);
-            return null;
+            PolarPaper.logger().warning("Failed to read config, using defaults");
+            PolarPaper.logger().log(Level.INFO, e.getMessage(), e);
+            return defaultConfig;
         }
     }
 

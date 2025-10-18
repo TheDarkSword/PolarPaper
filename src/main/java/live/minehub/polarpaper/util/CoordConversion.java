@@ -50,4 +50,14 @@ public class CoordConversion {
         return xyz & 0xF;
     }
 
+    public static int sectionIndex(int y, int minSection) {
+        return ((int)Math.floor((double)y / 16)) - minSection; // sections are 16 blocks high
+    }
+    public static int sectionIndex(int y) {
+        return (int)Math.floor((double)y / 16); // sections are 16 blocks high
+    }
+    public static int sectionIndexToY(int sectionIndex) {
+        return sectionIndex * 16;
+    }
+
 }

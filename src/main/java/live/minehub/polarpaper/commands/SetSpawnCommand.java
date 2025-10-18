@@ -36,8 +36,7 @@ public class SetSpawnCommand {
             return Command.SINGLE_SUCCESS;
         }
 
-        Config config = Config.readFromConfig(PolarPaper.getPlugin().getConfig(), bukkitWorld.getName());
-        if (config == null) config = Config.DEFAULT;
+        Config config = Config.readFromConfig(PolarPaper.getPlugin().getConfig(), bukkitWorld.getName(), Config.getDefaultConfig(bukkitWorld));
 
         Location spawnPos = player.getLocation().clone();
         if (rounded) {

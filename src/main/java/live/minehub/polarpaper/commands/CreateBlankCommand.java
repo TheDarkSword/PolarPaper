@@ -29,7 +29,8 @@ public class CreateBlankCommand {
             return Command.SINGLE_SUCCESS;
         }
 
-        byte[] polarBytes = PolarWriter.write(new PolarWorld());
+        PolarWorld newPolarWorld = new PolarWorld((byte)-4, (byte)19);
+        byte[] polarBytes = PolarWriter.write(newPolarWorld);
 
         Path pluginFolder = Path.of(PolarPaper.getPlugin().getDataFolder().getAbsolutePath());
         Path worldsFolder = pluginFolder.resolve("worlds");
@@ -48,7 +49,7 @@ public class CreateBlankCommand {
 
         Config.writeToConfig(PolarPaper.getPlugin().getConfig(), worldName, Config.DEFAULT);
 
-        Polar.loadWorld(new PolarWorld(), worldName, Config.DEFAULT);
+        Polar.loadWorld(newPolarWorld, worldName, Config.DEFAULT);
         ctx.getSource().getSender().sendMessage(
                 Component.text()
                         .append(Component.text("Created blank world '", NamedTextColor.AQUA))

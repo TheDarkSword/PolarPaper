@@ -5,6 +5,7 @@ import com.mojang.brigadier.context.CommandContext;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 import live.minehub.polarpaper.*;
 import live.minehub.polarpaper.source.FilePolarSource;
+import live.minehub.polarpaper.util.CoordConversion;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.event.HoverEvent;
@@ -83,7 +84,12 @@ public class ConvertCommand {
 
         Polar.updateConfig(bukkitWorld, newWorldName);
 
-        PolarWorld newPolarWorld = new PolarWorld();
+        int minHeight = bukkitWorld.getMinHeight();
+        int maxHeight = bukkitWorld.getMaxHeight() - 1;
+        PolarWorld newPolarWorld = new PolarWorld(
+                (byte) CoordConversion.sectionIndex(minHeight),
+                (byte) CoordConversion.sectionIndex(maxHeight)
+        );
 
         int offsetX = centered ? 0 : playerChunk.getX();
         int offsetZ = centered ? 0 : playerChunk.getZ();

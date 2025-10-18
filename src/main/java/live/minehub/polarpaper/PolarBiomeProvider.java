@@ -14,8 +14,6 @@ import java.util.List;
 
 public class PolarBiomeProvider extends BiomeProvider {
 
-    private static final int CHUNK_SECTION_SIZE = 16;
-
     private final @NotNull PolarWorld polarWorld;
     public PolarBiomeProvider(@NotNull PolarWorld polarWorld) {
         this.polarWorld = polarWorld;
@@ -26,10 +24,19 @@ public class PolarBiomeProvider extends BiomeProvider {
         int chunkX = CoordConversion.globalToChunk(x);
         int chunkZ = CoordConversion.globalToChunk(z);
 
-        PolarChunk chunk = polarWorld.chunkAt(chunkX, chunkZ);
-        if (chunk == null) return Biome.PLAINS;
+        Biome defaultBiome = switch (worldInfo.getEnvironment()) {
+            case NORMAL, CUSTOM -> Biome.PLAINS;
+            case NETHER -> Biome.NETHER_WASTES;
+            case THE_END -> Biome.THE_END;
+        };
 
-        int sectionIndex = ((int)Math.floor((double)y / CHUNK_SECTION_SIZE)) + 4; // -4 = min section
+        PolarChunk chunk = polarWorld.chunkAt(chunkX, chunkZ);
+        if (chunk == null) return defaultBiome;
+
+        int sectionIndex = CoordConversion.sectionIndex(y, polarWorld.minSection());
+
+        if (sectionIndex < 0) return defaultBiome;
+        if (sectionIndex >= chunk.sections().length) return defaultBiome;
 
         PolarSection section = chunk.sections()[sectionIndex];
 

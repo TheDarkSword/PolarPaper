@@ -57,7 +57,6 @@ public class InfoCommand {
         }
 
         Config config = Config.readFromConfig(PolarPaper.getPlugin().getConfig(), bukkitWorld.getName());
-        if (config == null) config = Config.DEFAULT;
 
         ctx.getSource().getSender().sendMessage(
                 Component.text()
