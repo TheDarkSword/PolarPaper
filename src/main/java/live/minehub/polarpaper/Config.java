@@ -18,6 +18,7 @@ import java.util.logging.Level;
 public record Config(
         @NotNull String source,
         int autoSaveIntervalTicks,
+        long time,
         boolean saveOnStop,
         boolean loadOnStartup,
         @NotNull Location spawn,
@@ -30,9 +31,24 @@ public record Config(
         @NotNull Map<String, Object> gamerules
 ) {
 
+    public static final Map<String, Object> DEFAULT_GAMERULES = new HashMap<>() {{
+        put("doMobSpawning", false);
+        put("doFireTick", false);
+        put("randomTickSpeed", 0);
+        put("mobGriefing", false);
+        put("doVinesSpread", false);
+        put("pvp", true);
+        put("projectilesCanBreakBlocks", false);
+        put("tntExplodes", false);
+        put("coralDeath", false); // custom gamerule
+        put("blockPhysics", false); // custom gamerule
+        put("liquidPhysics", false); // custom gamerule
+    }};
+
     public static final Config DEFAULT = new Config(
             "file",
             -1,
+            1000L,
             false,
             true,
             new Location(null, 0, 64, 0),
@@ -42,22 +58,12 @@ public record Config(
             true,
             WorldType.NORMAL,
             World.Environment.NORMAL,
-            Map.of(
-                    "doMobSpawning", false,
-                    "doFireTick", false,
-                    "randomTickSpeed", 0,
-                    "mobGriefing", false,
-                    "doVinesSpread", false,
-                    "pvp", true,
-                    "coralDeath", false, // custom gamerule
-                    "blockPhysics", false, // custom gamerule
-                    "liquidPhysics", false // custom gamerule
-            )
+            DEFAULT_GAMERULES
     );
 
     public static @NotNull Config getDefaultConfig(World world) {
         // Add gamerules from world into config
-        Map<String, Object> gameruleMap = new HashMap<>(Config.DEFAULT.gamerules());
+        Map<String, Object> gameruleMap = new HashMap<>(Config.DEFAULT_GAMERULES);
 
         for (String name : world.getGameRules()) {
             org.bukkit.GameRule<?> gamerule = org.bukkit.GameRule.getByName(name);
@@ -74,6 +80,7 @@ public record Config(
         return new Config(
                 "file",
                 -1,
+                world.getFullTime(),
                 Config.DEFAULT.saveOnStop,
                 Config.DEFAULT.loadOnStartup,
                 world.getSpawnLocation(),
@@ -92,7 +99,7 @@ public record Config(
     }
 
     public @NotNull Config withSpawnPos(Location location) {
-        return new Config(this.source, this.autoSaveIntervalTicks, this.saveOnStop, this.loadOnStartup, location, this.difficulty, this.allowMonsters, this.allowAnimals, this.allowWorldExpansion, this.worldType, this.environment, this.gamerules);
+        return new Config(this.source, this.autoSaveIntervalTicks, this.time, this.saveOnStop, this.loadOnStartup, location, this.difficulty, this.allowMonsters, this.allowAnimals, this.allowWorldExpansion, this.worldType, this.environment, this.gamerules);
     }
 
 
@@ -106,6 +113,7 @@ public record Config(
         try {
             String source = config.getString(prefix + "source", defaultConfig.source);
             int autoSaveIntervalTicks = config.getInt(prefix + "autosaveIntervalTicks", defaultConfig.autoSaveIntervalTicks);
+            long time = config.getLong(prefix + "time", defaultConfig.time);
             boolean saveOnStop = config.getBoolean(prefix + "saveOnStop", defaultConfig.saveOnStop);
             boolean loadOnStartup = config.getBoolean(prefix + "loadOnStartup", defaultConfig.loadOnStartup);
             String spawn = config.getString(prefix + "spawn", locationToString(defaultConfig.spawn));
@@ -127,6 +135,7 @@ public record Config(
             return new Config(
                     source,
                     autoSaveIntervalTicks,
+                    time,
                     saveOnStop,
                     loadOnStartup,
                     stringToLocation(spawn),
@@ -150,6 +159,7 @@ public record Config(
 
         fileConfig.set(prefix + "source", config.source);
         fileConfig.set(prefix + "autosaveIntervalTicks", config.autoSaveIntervalTicks);
+        fileConfig.set(prefix + "time", config.time);
         fileConfig.setInlineComments(prefix + "autosaveIntervalTicks", List.of("-1 to disable"));
         fileConfig.set(prefix + "saveOnStop", config.saveOnStop);
         fileConfig.set(prefix + "loadOnStartup", config.loadOnStartup);

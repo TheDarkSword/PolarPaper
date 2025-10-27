@@ -141,10 +141,10 @@ public class Polar {
     }
 
     public static void startAutoSaveTask(World newWorld, Config config) {
-        if (config.autoSaveIntervalTicks() == -1) return;
-
         BukkitTask prevTask = AUTOSAVE_TASK_MAP.get(newWorld.getName());
         if (prevTask != null) prevTask.cancel();
+
+        if (config.autoSaveIntervalTicks() == -1) return;
 
         BukkitTask autosaveTask = Bukkit.getScheduler().runTaskTimer(PolarPaper.getPlugin(), () -> {
             long before = System.nanoTime();
@@ -183,6 +183,7 @@ public class Polar {
         Config newConfig = new Config(
                 config.source(),
                 config.autoSaveIntervalTicks(),
+                config.time(),
                 config.saveOnStop(),
                 config.loadOnStartup(),
                 config.spawn(),
