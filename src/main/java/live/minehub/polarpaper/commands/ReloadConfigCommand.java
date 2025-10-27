@@ -10,11 +10,14 @@ import org.bukkit.Bukkit;
 import org.bukkit.GameRule;
 import org.bukkit.World;
 
+import java.util.Map;
+
 public class ReloadConfigCommand {
 
     protected static int run(CommandContext<CommandSourceStack> ctx) {
         PolarPaper.getPlugin().reloadConfig();
 
+        int numWorlds = 0;
         for (World bukkitWorld : Bukkit.getWorlds()) {
             if (!Polar.isInConfig(bukkitWorld.getName())) continue;
 
@@ -24,7 +27,6 @@ public class ReloadConfigCommand {
             if (generator == null) continue;
 
             Config config = Config.readFromConfig(PolarPaper.getPlugin().getConfig(), bukkitWorld.getName());
-            if (config == null) continue;
 
             generator.setConfig(config);
 
@@ -32,20 +34,23 @@ public class ReloadConfigCommand {
             bukkitWorld.setSpawnFlags(config.allowMonsters(), config.allowAnimals());
             bukkitWorld.setAutoSave(false);
 
-            for (Config.GameRule gamerule : config.gamerules()) {
-                GameRule<?> rule = GameRule.getByName(gamerule.name());
+            for (Map.Entry<String, Object> gamerule : config.gamerules().entrySet()) {
+                GameRule<?> rule = GameRule.getByName(gamerule.getKey());
                 if (rule == null) continue;
-                Polar.setGameRule(bukkitWorld, rule, gamerule.value());
+                Polar.setGameRule(bukkitWorld, rule, gamerule.getValue());
             }
 
             Polar.startAutoSaveTask(bukkitWorld, config);
 
-            ctx.getSource().getSender().sendMessage(
-                    Component.text()
-                            .append(Component.text("Reloaded config for ", NamedTextColor.AQUA))
-                            .append(Component.text(bukkitWorld.getName(), NamedTextColor.AQUA))
-            );
+            numWorlds++;
         }
+
+        ctx.getSource().getSender().sendMessage(
+                Component.text()
+                        .append(Component.text("Reloaded config for ", NamedTextColor.AQUA))
+                        .append(Component.text(numWorlds, NamedTextColor.AQUA))
+                        .append(Component.text(" worlds", NamedTextColor.AQUA))
+        );
 
         return Command.SINGLE_SUCCESS;
     }

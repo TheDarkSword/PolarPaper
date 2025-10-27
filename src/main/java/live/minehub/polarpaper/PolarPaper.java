@@ -53,10 +53,6 @@ public final class PolarPaper extends JavaPlugin {
                 }
 
                 Config config = Config.readFromConfig(getConfig(), worldName);
-                if (config == null) {
-                    getLogger().warning("Polar world '" + worldName + "' has an invalid config, skipping.");
-                    return;
-                }
 
                 if (!config.loadOnStartup()) return;
 

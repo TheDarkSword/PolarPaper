@@ -176,21 +176,8 @@ public class Polar {
 
     public static Config updateConfig(World world, String worldName) {
         FileConfiguration fileConfig = PolarPaper.getPlugin().getConfig();
-        Config config = Config.readFromConfig(fileConfig, worldName, Config.getDefaultConfig(world)); // If world not in config, use defaults
-
-        // Add gamerules from world into config
-        List<Config.GameRule> gameruleList = new ArrayList<>();
-        for (String name : world.getGameRules()) {
-            GameRule<?> gamerule = GameRule.getByName(name);
-            if (gamerule == null) continue;
-
-            Object gameRuleValue = world.getGameRuleValue(gamerule);
-            if (gameRuleValue == null) continue;
-            Object gameRuleDefault = world.getGameRuleDefault(gamerule);
-            if (gameRuleValue != gameRuleDefault) {
-                gameruleList.add(new Config.GameRule(name, gameRuleValue));
-            }
-        }
+        Config defaultConfig = Config.getDefaultConfig(world);
+        Config config = Config.readFromConfig(fileConfig, worldName, defaultConfig); // If world not in config, use defaults
 
         // Update gamerules
         Config newConfig = new Config(
@@ -205,7 +192,7 @@ public class Polar {
                 config.allowWorldExpansion(),
                 config.worldType(),
                 config.environment(),
-                gameruleList
+                defaultConfig.gamerules()
         );
         Config.writeToConfig(fileConfig, worldName, newConfig);
 
@@ -417,7 +404,7 @@ public class Polar {
     }
 
     @SuppressWarnings("UnstableApiUsage")
-    public static @Nullable World loadWorld(WorldCreator creator, Difficulty difficulty, List<Config.GameRule> gamerules, boolean allowMonsters, boolean allowAnimals) {
+    public static @Nullable World loadWorld(WorldCreator creator, Difficulty difficulty, Map<String, Object> gamerules, boolean allowMonsters, boolean allowAnimals) {
         CraftServer craftServer = (CraftServer) Bukkit.getServer();
 
         // Check if already existing
@@ -556,9 +543,11 @@ public class Polar {
                 chunkGenerator, biomeProvider
         );
 
-        for (Config.GameRule rule : gamerules) {
-            GameRules.Value<?> handle = serverLevel.getGameRules().getRule(serverLevel.getWorld().getGameRulesNMS().get(rule.name()));
-            handle.deserialize(String.valueOf(rule.value()));
+        for (Map.Entry<String, Object> entry : gamerules.entrySet()) {
+            GameRules.Key<?> key = serverLevel.getWorld().getGameRulesNMS().get(entry.getKey());
+            if (key == null) continue;
+            GameRules.Value<?> handle = serverLevel.getGameRules().getRule(key);
+            handle.deserialize(String.valueOf(entry.getValue()));
             handle.onChanged(serverLevel);
         }
 

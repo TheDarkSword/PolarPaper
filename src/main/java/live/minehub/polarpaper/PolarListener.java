@@ -2,9 +2,14 @@ package live.minehub.polarpaper;
 
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.BlockFadeEvent;
+import org.bukkit.event.block.BlockFromToEvent;
+import org.bukkit.event.block.BlockPhysicsEvent;
+import org.bukkit.event.entity.EntityChangeBlockEvent;
 import org.bukkit.event.world.ChunkPopulateEvent;
 import org.bukkit.generator.ChunkGenerator;
 
+@SuppressWarnings("unused")
 public class PolarListener implements Listener {
 
     @EventHandler
@@ -22,5 +27,49 @@ public class PolarListener implements Listener {
             worldAccess.populateChunkData(event.getChunk(), chunk.userData());
         }
     }
+
+    @EventHandler
+    public void onBlockFade(BlockFadeEvent event) { // coral death
+        PolarGenerator generator = PolarGenerator.fromWorld(event.getBlock().getWorld());
+        if (generator == null) return;
+        Config config = generator.getConfig();
+        Object enabled = config.gamerules().getOrDefault("coralDeath", false);
+        if (!(enabled instanceof Boolean enabledBool)) return;
+        event.setCancelled(!enabledBool);
+    }
+
+    @EventHandler
+    public void onBlockFromTo(BlockFromToEvent event) { // liquid flow / dragon egg
+        PolarGenerator generator = PolarGenerator.fromWorld(event.getBlock().getWorld());
+        if (generator == null) return;
+        Config config = generator.getConfig();
+        Object enabled = config.gamerules().getOrDefault("liquidPhysics", false);
+        if (!(enabled instanceof Boolean enabledBool)) return;
+        event.setCancelled(!enabledBool);
+    }
+
+    @EventHandler
+    public void onBlockPhysics(BlockPhysicsEvent event) { // block placement rules
+        PolarGenerator generator = PolarGenerator.fromWorld(event.getBlock().getWorld());
+        if (generator == null) return;
+        Config config = generator.getConfig();
+        Object enabled = config.gamerules().getOrDefault("blockPhysics", false);
+        if (!(enabled instanceof Boolean enabledBool)) return;
+        event.setCancelled(!enabledBool);
+    }
+
+    @EventHandler
+    public void onChangeBlock(EntityChangeBlockEvent event) { // gravity blocks
+        if (!event.getBlock().getType().hasGravity()) return;
+
+        PolarGenerator generator = PolarGenerator.fromWorld(event.getBlock().getWorld());
+        if (generator == null) return;
+        Config config = generator.getConfig();
+        Object enabled = config.gamerules().getOrDefault("blockPhysics", false);
+        if (!(enabled instanceof Boolean enabledBool)) return;
+        event.setCancelled(!enabledBool);
+    }
+
+
 
 }

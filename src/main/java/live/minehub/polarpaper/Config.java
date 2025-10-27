@@ -10,6 +10,7 @@ import org.jetbrains.annotations.NotNull;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
@@ -26,7 +27,7 @@ public record Config(
         boolean allowWorldExpansion,
         @NotNull WorldType worldType,
         @NotNull World.Environment environment,
-        @NotNull List<GameRule> gamerules
+        @NotNull Map<String, Object> gamerules
 ) {
 
     public static final Config DEFAULT = new Config(
@@ -41,19 +42,23 @@ public record Config(
             true,
             WorldType.NORMAL,
             World.Environment.NORMAL,
-            List.of(
-                    new GameRule("doMobSpawning", false),
-                    new GameRule("doFireTick", false),
-                    new GameRule("randomTickSpeed", 0),
-                    new GameRule("mobGriefing", false),
-                    new GameRule("doVinesSpread", false),
-                    new GameRule("pvp", true)
+            Map.of(
+                    "doMobSpawning", false,
+                    "doFireTick", false,
+                    "randomTickSpeed", 0,
+                    "mobGriefing", false,
+                    "doVinesSpread", false,
+                    "pvp", true,
+                    "coralDeath", false, // custom gamerule
+                    "blockPhysics", false, // custom gamerule
+                    "liquidPhysics", false // custom gamerule
             )
     );
 
     public static @NotNull Config getDefaultConfig(World world) {
         // Add gamerules from world into config
-        List<Config.GameRule> gameruleList = new ArrayList<>();
+        Map<String, Object> gameruleMap = new HashMap<>(Config.DEFAULT.gamerules());
+
         for (String name : world.getGameRules()) {
             org.bukkit.GameRule<?> gamerule = org.bukkit.GameRule.getByName(name);
             if (gamerule == null) continue;
@@ -62,7 +67,7 @@ public record Config(
             if (gameRuleValue == null) continue;
             Object gameRuleDefault = world.getGameRuleDefault(gamerule);
             if (gameRuleValue != gameRuleDefault) {
-                gameruleList.add(new Config.GameRule(name, gameRuleValue));
+                gameruleMap.put(name, gameRuleValue);
             }
         }
 
@@ -78,7 +83,7 @@ public record Config(
                 Config.DEFAULT.allowWorldExpansion,
                 WorldType.NORMAL,
                 world.getEnvironment(),
-                gameruleList
+                gameruleMap
         );
     }
 
@@ -113,13 +118,10 @@ public record Config(
 
 
             List<Map<?, ?>> gamerules = config.getMapList(prefix + "gamerules");
-            List<GameRule> gamerulesList = new ArrayList<>();
-            for (Map<?, ?> gamerule : gamerules) {
-                for (Map.Entry<?, ?> entry : gamerule.entrySet()) {
-                    gamerulesList.add(new GameRule((String)entry.getKey(), entry.getValue()));
-                }
-            }
-            if (gamerules.isEmpty()) gamerulesList.addAll(defaultConfig.gamerules);
+
+            Map<String, Object> gamerulesMap = Config.convertYmlGamerules(gamerules);
+
+            if (gamerules.isEmpty()) gamerulesMap.putAll(defaultConfig.gamerules);
 
 
             return new Config(
@@ -134,7 +136,7 @@ public record Config(
                     allowWorldExpansion,
                     worldType,
                     environment,
-                    gamerulesList
+                    gamerulesMap
             );
         } catch (IllegalArgumentException e) {
             PolarPaper.logger().warning("Failed to read config, using defaults");
@@ -161,7 +163,8 @@ public record Config(
         fileConfig.setInlineComments(prefix + "worldType", List.of("One of: NORMAL, FLAT, AMPLIFIED, LARGE_BIOMES"));
         fileConfig.set(prefix + "environment", config.environment.name());
         fileConfig.setInlineComments(prefix + "environment", List.of("One of: NORMAL, NETHER, THE_END, CUSTOM"));
-        fileConfig.set(prefix + "gamerules", config.gamerulesMap());
+        fileConfig.set(prefix + "gamerules", config.gamerulesList());
+        fileConfig.setInlineComments(prefix + "gamerules", List.of("Custom rules: liquidPhysics, blockPhysics, coralDeath"));
 
         Path pluginFolder = Path.of(PolarPaper.getPlugin().getDataFolder().getAbsolutePath());
         Path configFile = pluginFolder.resolve("config.yml");
@@ -207,20 +210,24 @@ public record Config(
         }
     }
 
-    public @NotNull List<Map<String, ?>> gamerulesMap() {
+    public @NotNull List<Map<String, ?>> gamerulesList() {
         List<Map<String, ?>> gamerules = new ArrayList<>();
-        for (GameRule gamerule : gamerules()) {
-            gamerules.add(gamerule.map());
+        for (Map.Entry<String, Object> entry : gamerules().entrySet()) {
+            gamerules.add(Map.of(entry.getKey(), entry.getValue()));
         }
         return gamerules;
     }
 
-    public record GameRule(String name, Object value) {
+    public static @NotNull Map<String, Object> convertYmlGamerules(List<Map<?, ?>> ymlGamerules) {
+        Map<String, Object> gamerules = new HashMap<>();
+        for (Map<?, ?> ymlGamerule : ymlGamerules) {
+            for (Map.Entry<?, ?> entry : ymlGamerule.entrySet()) {
+                if (!(entry.getKey() instanceof String key)) continue;
 
-        public Map<String, ?> map() {
-            return Map.of(name, value);
+                gamerules.put(key, entry.getValue());
+            }
         }
-
+        return gamerules;
     }
 
 }
