@@ -403,6 +403,7 @@ public class Polar {
                     // (otherwise we don't know if it's blank because its really blank, or because it hasn't generated yet)
                     if (currentChunk.getPersistedStatus().isOrBefore(ChunkStatus.SURFACE)) continue;
                     polarWorld.removeChunkAt(chunkX, chunkZ);
+                    currentChunk.tryMarkSaved();
                     continue;
                 }
             } else {
