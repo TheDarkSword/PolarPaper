@@ -11,6 +11,7 @@ import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.craftbukkit.persistence.DirtyCraftPersistentDataContainer;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Painting;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.persistence.PersistentDataContainer;
@@ -100,6 +101,7 @@ public interface PolarWorldAccess {
             List<PolarChunk.Entity> polarEntities = new ArrayList<>();
 
             for (@NotNull Entity entity : entities) {
+                if (entity.getType() == EntityType.PLAYER) continue;
                 byte[] entityBytes = EntityUtil.entityToBytes(entity);
                 if (entityBytes == null) continue;
                 Location entityPos = entity.getLocation();
