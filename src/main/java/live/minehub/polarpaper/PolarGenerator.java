@@ -1,8 +1,10 @@
 package live.minehub.polarpaper;
 
 import live.minehub.polarpaper.util.CoordConversion;
+import live.minehub.polarpaper.util.PaletteUtil;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.util.SimpleBitStorage;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
@@ -20,6 +22,7 @@ import org.bukkit.generator.WorldInfo;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Arrays;
 import java.util.Random;
 
 public class PolarGenerator extends ChunkGenerator {
@@ -103,33 +106,18 @@ public class PolarGenerator extends ChunkGenerator {
         }
 
         PalettedContainer<BlockState> states = chunkAccessSection.getStates();
-//        states.acquire();
 
-        if (rawBlockPalette.length <= 1) {
-            BlockState blockState = materialPalette[0];
-            if (blockState.isAir()) return;
+        var bitsPerEntry = (int) Math.ceil(Math.log(rawBlockPalette.length) / Math.log(2));
 
-            for (int y = 0; y < 16; y++) {
-                for (int z = 0; z < 16; z++) {
-                    for (int x = 0; x < 16; x++) {
-                        states.set(x, y, z, blockState);
-                    }
-                }
-            }
-        } else {
-            int blockIndex = 0;
-            for (int y = 0; y < 16; y++) {
-                for (int z = 0; z < 16; z++) {
-                    for (int x = 0; x < 16; x++) {
-                        states.set(x, y, z, materialPalette[blockData[blockIndex]]);
-                        blockIndex++;
-                    }
-                }
-            }
-        }
+        if (blockData == null) return;
+
+        states.data = new PalettedContainer.Data<>(
+                PaletteUtil.getConfigurationForBitCount(bitsPerEntry),
+                new SimpleBitStorage(Math.max(4, bitsPerEntry), blockData.length, blockData),
+                PaletteUtil.createPalette(bitsPerEntry, Arrays.asList(materialPalette))
+        );
+
         chunkAccessSection.recalcBlockCounts();
-
-//        states.release();
     }
 
     public PolarWorld getPolarWorld() {

@@ -631,7 +631,7 @@ public class Polar {
             List<String> biomePaletteStrings = new ArrayList<>();
             if (!chunkAccessSection.hasOnlyAir()) {
                 PalettedContainer.Data<BlockState> blockPaletteData = chunkAccessSection.getStates().data;
-                Object[] palette = blockPaletteData.moonrise$getPalette();
+                Object[] palette = blockPaletteData.palette().moonrise$getRawPalette(blockPaletteData);
                 for (Object p : palette) {
                     if (p == null) continue;
                     if (!(p instanceof BlockState blockState)) continue;
@@ -647,12 +647,16 @@ public class Polar {
                     int paletteIdx = blockBitStorage.get(index);
                     blockData[index] = paletteIdx;
                 }
+
+                // TODO: trim the palette (needed?)
+//                // remove unused blocks from the palette
+//                blockPaletteStrings = Arrays.stream(blockData).distinct().mapToObj(blockPaletteStrings::get).toList();
             } else {
                 blockPaletteStrings.add(Blocks.AIR.defaultBlockState().toString()
                         .replace("Block{", "").replace("}", ""));
             }
             PalettedContainer.Data<Holder<Biome>> biomePaletteData = ((PalettedContainer<Holder<Biome>>)chunkAccessSection.getBiomes()).data;
-            Object[] biomePalette = biomePaletteData.moonrise$getPalette();
+            Object[] biomePalette = biomePaletteData.palette().moonrise$getRawPalette(biomePaletteData);
             for (Object p : biomePalette) {
                 if (p == null) continue;
                 if (!(p instanceof Holder<?> biomeHolder)) continue;

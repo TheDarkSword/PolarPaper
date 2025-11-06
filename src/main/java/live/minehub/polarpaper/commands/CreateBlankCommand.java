@@ -3,17 +3,15 @@ package live.minehub.polarpaper.commands;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.context.CommandContext;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
-import live.minehub.polarpaper.*;
-import live.minehub.polarpaper.util.ExceptionUtil;
+import live.minehub.polarpaper.Config;
+import live.minehub.polarpaper.Polar;
+import live.minehub.polarpaper.PolarPaper;
+import live.minehub.polarpaper.PolarWorld;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.configuration.file.FileConfiguration;
-
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 
 public class CreateBlankCommand {
 
@@ -32,22 +30,6 @@ public class CreateBlankCommand {
         }
 
         PolarWorld newPolarWorld = new PolarWorld((byte)-4, (byte)19);
-        byte[] polarBytes = PolarWriter.write(newPolarWorld);
-
-        Path pluginFolder = Path.of(PolarPaper.getPlugin().getDataFolder().getAbsolutePath());
-        Path worldsFolder = pluginFolder.resolve("worlds");
-        try {
-            Files.write(worldsFolder.resolve(worldName + ".polar"), polarBytes);
-        } catch (IOException e) {
-            ctx.getSource().getSender().sendMessage(
-                    Component.text()
-                            .append(Component.text("Failed to create world '", NamedTextColor.RED))
-                            .append(Component.text(worldName, NamedTextColor.RED))
-            );
-            PolarPaper.logger().warning("Error while creating blank world " + worldName);
-            ExceptionUtil.log(e);
-            return Command.SINGLE_SUCCESS;
-        }
 
         FileConfiguration fileConfig = PolarPaper.getPlugin().getConfig();
         Config defaultConfig = Config.getDefaultConfig(fileConfig);
