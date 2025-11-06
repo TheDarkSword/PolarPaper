@@ -79,7 +79,7 @@ public class PolarSection {
      * Returns the uncompressed palette data. Each int corresponds to an index in the palette.
      * Always has a length of 4096.
      */
-    public int[] blockData() {
+    public int @Nullable [] blockData() {
         assert blockData != null : "must check length of blockPalette() before using blockData()";
         return blockData;
     }

@@ -48,7 +48,7 @@ public class GotoCommand {
                 Component.text()
                         .append(Component.text("Teleporting to '", NamedTextColor.AQUA))
                         .append(Component.text(bukkitWorld.getName(), NamedTextColor.AQUA))
-                        .append(Component.text("'...", NamedTextColor.AQUA))
+                        .append(Component.text("'", NamedTextColor.AQUA))
         );
 
         spawnPos.setWorld(bukkitWorld);

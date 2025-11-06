@@ -32,7 +32,6 @@ public class ReloadConfigCommand {
 
             bukkitWorld.setDifficulty(org.bukkit.Difficulty.valueOf(config.difficulty().name()));
             bukkitWorld.setSpawnFlags(config.allowMonsters(), config.allowAnimals());
-            bukkitWorld.setAutoSave(false);
 
             for (Map.Entry<String, Object> gamerule : config.gamerules().entrySet()) {
                 GameRule<?> rule = GameRule.getByName(gamerule.getKey());

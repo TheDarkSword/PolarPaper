@@ -1,5 +1,7 @@
 package live.minehub.polarpaper.commands;
 
+import ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemServerLevel;
+import ca.spottedleaf.moonrise.patches.chunk_system.scheduling.NewChunkHolder;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.context.CommandContext;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
@@ -11,7 +13,10 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.command.CommandSender;
+import org.bukkit.craftbukkit.CraftWorld;
 import org.bukkit.entity.Player;
+
+import java.util.List;
 
 public class InfoCommand {
 
@@ -58,6 +63,8 @@ public class InfoCommand {
 
         Config config = Config.readFromConfig(PolarPaper.getPlugin().getConfig(), bukkitWorld.getName());
 
+        List<NewChunkHolder> chunkHolders = ((ChunkSystemServerLevel) ((CraftWorld) bukkitWorld).getHandle()).moonrise$getChunkTaskScheduler().chunkHolderManager.getChunkHolders();
+
         ctx.getSource().getSender().sendMessage(
                 Component.text()
                         .append(Component.text("Info for ", NamedTextColor.AQUA))
@@ -73,20 +80,14 @@ public class InfoCommand {
                         .append(Component.text(" Compression: ", NamedTextColor.AQUA))
                         .append(Component.text(polarWorld.compression().name(), NamedTextColor.AQUA))
                         .append(Component.newline())
-                        .append(Component.text(" Source: ", NamedTextColor.AQUA))
-                        .append(Component.text(config.source(), NamedTextColor.AQUA))
-                        .append(Component.newline())
                         .append(Component.text(" Spawn: ", NamedTextColor.AQUA))
                         .append(Component.text(config.spawnString(), NamedTextColor.AQUA))
                         .append(Component.newline())
-                        .append(Component.text(" Loaded Chunks: ", NamedTextColor.AQUA))
+                        .append(Component.text(" Saved Chunks: ", NamedTextColor.AQUA))
                         .append(Component.text(polarWorld.chunks().size(), NamedTextColor.AQUA))
                         .append(Component.newline())
-                        .append(Component.text(" Expand Chunks: ", NamedTextColor.AQUA))
-                        .append(Component.text(polarWorld.expandChunks().size(), NamedTextColor.AQUA))
-                        .append(Component.newline())
-                        .append(Component.text(" Non-empty Chunks: ", NamedTextColor.AQUA))
-                        .append(Component.text(polarWorld.nonEmptyChunks(), NamedTextColor.AQUA))
+                        .append(Component.text(" Chunk Holders: ", NamedTextColor.AQUA))
+                        .append(Component.text(chunkHolders.size(), NamedTextColor.AQUA))
         );
 
         return Command.SINGLE_SUCCESS;

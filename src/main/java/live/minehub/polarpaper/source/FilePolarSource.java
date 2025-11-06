@@ -1,17 +1,12 @@
 package live.minehub.polarpaper.source;
 
+import live.minehub.polarpaper.PolarPaper;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-public class FilePolarSource implements PolarSource {
-
-    private final Path path;
-
-    public FilePolarSource(Path path) {
-        this.path = path;
-    }
-
+public record FilePolarSource(Path path) implements PolarSource {
     @Override
     public byte[] readBytes() {
         try {
@@ -28,5 +23,12 @@ public class FilePolarSource implements PolarSource {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public static FilePolarSource defaultFolder(String worldName) {
+        Path pluginFolder = Path.of(PolarPaper.getPlugin().getDataFolder().getAbsolutePath());
+        Path worldsFolder = pluginFolder.resolve("worlds");
+        Path path = worldsFolder.resolve(worldName + ".polar");
+        return new FilePolarSource(path);
     }
 }

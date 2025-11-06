@@ -46,14 +46,14 @@ public class PolarReader {
                 ? getVarInt(bb)
                 : dataConverter.defaultDataVersion();
 
-        PolarPaper.logger().info("Polar version: " + version + " (" + dataVersion + ")");
+//        PolarPaper.logger().info("Polar version: " + version + " (" + dataVersion + ")");
 
 
         byte compressionByte = bb.get();
         PolarWorld.CompressionType compression = PolarWorld.CompressionType.fromId(compressionByte);
         assertThat(compression != null, "Invalid compression type");
 
-        PolarPaper.logger().info("Polar compression: " + compression.name());
+//        PolarPaper.logger().info("Polar compression: " + compression.name());
 
         int compressedDataLength = getVarInt(bb);
 

@@ -4,10 +4,12 @@ import com.mojang.brigadier.Command;
 import com.mojang.brigadier.context.CommandContext;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 import live.minehub.polarpaper.*;
+import live.minehub.polarpaper.util.ExceptionUtil;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
+import org.bukkit.configuration.file.FileConfiguration;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -43,13 +45,15 @@ public class CreateBlankCommand {
                             .append(Component.text(worldName, NamedTextColor.RED))
             );
             PolarPaper.logger().warning("Error while creating blank world " + worldName);
-            PolarPaper.logger().warning(e.toString());
+            ExceptionUtil.log(e);
             return Command.SINGLE_SUCCESS;
         }
 
-        Config.writeToConfig(PolarPaper.getPlugin().getConfig(), worldName, Config.DEFAULT);
+        FileConfiguration fileConfig = PolarPaper.getPlugin().getConfig();
+        Config defaultConfig = Config.getDefaultConfig(fileConfig);
+        Config.writeToConfig(fileConfig, worldName, defaultConfig);
 
-        Polar.loadWorld(newPolarWorld, worldName, Config.DEFAULT);
+        Polar.loadWorld(newPolarWorld, worldName, defaultConfig);
         ctx.getSource().getSender().sendMessage(
                 Component.text()
                         .append(Component.text("Created blank world '", NamedTextColor.AQUA))

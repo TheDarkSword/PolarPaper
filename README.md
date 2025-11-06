@@ -14,12 +14,23 @@ Polar is also a single plugin without requiring classloaders or a Paper fork
 
 ### [Download the latest jar](https://github.com/MinehubMC/PolarPaper/releases/latest)
 
-Polar was originally developed for [Minestom](https://github.com/Minestom/Minestom), see the Minestom loader [here](https://github.com/hollow-cube/polar)
+Polar was originally developed for [Minestom](https://github.com/Minestom/Minestom), see the Minestom library [here](https://github.com/hollow-cube/polar)
 
 [Support Discord](https://discord.gg/5MrPmKqS7p)
 
 ## Permissions
 Permission nodes are simply `polarpaper.<subcommand>`, for example: `polarpaper.info` for `/polar info`
+
+`polarpaper.version` for the root command (/polar)
+
+## Custom gamerules
+Polar provides a few custom gamerules that can be defined in the config:
+| Name          | Type    | Description                                 |
+| ------------- | ------- | ------------------------------------------- |
+| blockPhysics  | Boolean | Controls block placement/interaction rules  |
+| blockGravity  | Boolean | Allow gravity blocks to fall (sand, gravel) |
+| liquidPhysics | Boolean | Allow lava/water to flow                    |
+| coralDeath    | Boolean | Allow coral to die when not nearby water    |
 
 ## API
 Remember to add `polarpaper` to your depend list in plugin.yml if using as a plugin/compileOnly
@@ -41,36 +52,49 @@ dependencies {
 Load a polar world
 ```java
 // Manually
-Path path = Path.of("path/to/world.polar");
-String worldName = path.getFileName().toString().split("\\.polar")[0];
-byte[] bytes;
-try {
-    // This example shows reading a world from a file, however
-    // as long as you can read and write an array of bytes, you can read it
-    // from wherever you want - including mysql and redis!
-    bytes = Files.readAllBytes(path);
-} catch (IOException e) {
-    throw new RuntimeException(e);
-}
+byte[] bytes = ...
 PolarWorld polarWorld = PolarReader.read(bytes);
 Polar.loadWorld(polarWorld, worldName);
 
-// or by using config
-Polar.loadWorldConfigSource("gamingworld");
+// Manually using BytesPolarSource
+byte[] bytes = ...
+PolarSource source = new BytesPolarSource(bytes);
+Polar.loadWorld(source, worldName);
+
+// Using PolarSource
+Path savePath = Path.of("./epic/world.polar");
+// feel free to use your own PolarSource implementation
+PolarSource source = new FilePolarSource(savePath);
+Polar.loadWorld(source, worldName);
+
+// Load world like /polar load
+Polar.loadWorldFromFile("gamingworld");
 ```
 
 Save a polar world
 ```java
-// Using config (same as /polar save)
+// Manually
 World bukkitWorld = player.getWorld();
-Polar.saveWorldConfigSource(bukkitWorld);
+Polar.updateWorld(bukkitWorld); // refresh chunks
+PolarWorld polarWorld = PolarWorld.fromWorld(world);
+byte[] bytes = PolarWriter.write(polarWorld);
 
-// Custom source
+// Manually using BytesPolarSource
+World bukkitWorld = player.getWorld();
+PolarSource source = new BytesPolarSource();
+Polar.saveWorld(bukkitWorld, source);
+byte[] bytes = source.bytes();
+
+// Using PolarSource
 World bukkitWorld = player.getWorld();
 Path savePath = Path.of("./epic/world.polar");
-// feel free to use your own PolarSource class
+// feel free to use your own PolarSource implementation
 PolarSource source = new FilePolarSource(savePath);
 Polar.saveWorld(bukkitWorld, source);
+
+// Save world like /polar save
+World bukkitWorld = player.getWorld();
+Polar.saveWorldToFile(bukkitWorld);
 ```
 
 Get the `PolarWorld` that a player is in
@@ -81,10 +105,9 @@ PolarWorld polarWorld = PolarWorld.fromWorld(player.getWorld());
 
 Register events
 ```java
-// If you're not running the PolarPaper plugin and instead using it exclusively
+// If you're not using PolarPaper as a plugin and instead using it exclusively
 // as a dependency (e.g. implementation instead of compileOnly), you do not need to
-// add it to the depend list in your plugin.yml. However, in order to allow entities
-// to be read and spawned automatically, you must manually register the plugin listeners:
+// add it to the depend list in your plugin.yml. However, you must manually register the plugin listeners:
 PolarPaper.registerEvents();
 ```
 

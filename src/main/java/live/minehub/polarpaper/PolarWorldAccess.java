@@ -4,8 +4,8 @@ import com.google.common.io.ByteArrayDataOutput;
 import live.minehub.polarpaper.util.EntityUtil;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.chunk.ChunkAccess;
 import org.bukkit.Chunk;
-import org.bukkit.ChunkSnapshot;
 import org.bukkit.Location;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Painting;
@@ -26,6 +26,7 @@ import java.util.Set;
  * Usage if world access is completely optional, dependent features will not add
  * overhead to the format if unused.
  */
+@SuppressWarnings("unused")
 public interface PolarWorldAccess {
     PolarWorldAccess NOOP = new PolarWorldAccess() {
     };
@@ -69,7 +70,7 @@ public interface PolarWorldAccess {
         }
 
         @Override
-        public void saveChunkData(@NotNull ChunkSnapshot chunk,
+        public void saveChunkData(@NotNull ChunkAccess chunk,
                                   @NotNull Set<Map.Entry<BlockPos, BlockEntity>> blockEntities,
                                   @NotNull Entity[] entities, @NotNull ByteArrayDataOutput userData) {
             List<PolarChunk.Entity> polarEntities = new ArrayList<>();
@@ -153,7 +154,7 @@ public interface PolarWorldAccess {
      * @param entities Entities in the chunk being saved
      * @param userData A buffer to write user data to save
      */
-    default void saveChunkData(@NotNull ChunkSnapshot chunk,
+    default void saveChunkData(@NotNull ChunkAccess chunk,
                                @NotNull Set<Map.Entry<BlockPos, BlockEntity>> blockEntities, @NotNull Entity[] entities,
                                @NotNull ByteArrayDataOutput userData) {
     }
@@ -163,7 +164,7 @@ public interface PolarWorldAccess {
     }
 
     @ApiStatus.Experimental
-    default void saveHeightmaps(@NotNull ChunkSnapshot chunk, int[][] heightmaps) {
+    default void saveHeightmaps(@NotNull ChunkAccess chunk, int[][] heightmaps) {
     }
 
 }

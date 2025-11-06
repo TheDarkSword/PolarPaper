@@ -9,6 +9,7 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 
@@ -40,12 +41,12 @@ public class LoadCommand {
 
         ctx.getSource().getSender().sendMessage(
                 Component.text()
-                        .append(Component.text("Loading '", NamedTextColor.AQUA))
-                        .append(Component.text(worldName, NamedTextColor.AQUA))
-                        .append(Component.text("'...", NamedTextColor.AQUA))
+                        .append(Component.text("Loading '", NamedTextColor.GRAY))
+                        .append(Component.text(worldName, NamedTextColor.GRAY))
+                        .append(Component.text("'...", NamedTextColor.GRAY))
         );
 
-        Polar.loadWorldConfigSource(worldName).thenAccept(successful -> {
+        Polar.loadWorldFromFile(worldName).thenAccept(successful -> {
             if (successful) {
                 ctx.getSource().getSender().sendMessage(
                         Component.text()
@@ -58,8 +59,9 @@ public class LoadCommand {
                                                 .append(Component.text("/polar goto ", NamedTextColor.WHITE))
                                                 .append(Component.text(worldName, NamedTextColor.WHITE))
                                                 .clickEvent(ClickEvent.runCommand("/polar goto " + worldName))
-                                                .hoverEvent(HoverEvent.showText(Component.text("Click to run"))))
-                                .append(Component.text(" to go to the world now", NamedTextColor.AQUA))
+                                                .hoverEvent(HoverEvent.showText(Component.text("Click to run")))
+                                                .decorate(TextDecoration.UNDERLINED))
+                                .append(Component.text(" to teleport now", NamedTextColor.AQUA))
                 );
             } else {
                 ctx.getSource().getSender().sendMessage(

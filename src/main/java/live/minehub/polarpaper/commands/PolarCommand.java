@@ -17,7 +17,7 @@ public class PolarCommand {
     public static void register(Commands registrar) {
         registrar.register(
                 Commands.literal("polar")
-                        .requires(source -> source.getSender().hasPermission("paperpolar.version"))
+                        .requires(source -> source.getSender().hasPermission("polarpaper.version"))
                         .executes(ctx -> {
                             ctx.getSource().getSender().sendMessage(
                                     Component.text()
@@ -27,11 +27,11 @@ public class PolarCommand {
                             return Command.SINGLE_SUCCESS;
                         })
                         .then(Commands.literal("help")
-                                .requires(source -> source.getSender().hasPermission("paperpolar.help"))
+                                .requires(source -> source.getSender().hasPermission("polarpaper.help"))
                                 .executes(HelpCommand::run)
                         )
                         .then(Commands.literal("goto")
-                                .requires(source -> source.getSender().hasPermission("paperpolar.goto"))
+                                .requires(source -> source.getSender().hasPermission("polarpaper.goto"))
                                 .executes(ctx -> {
                                     ctx.getSource().getSender().sendMessage(
                                             Component.text()
@@ -52,7 +52,7 @@ public class PolarCommand {
                                         })
                                         .executes(GotoCommand::run)))
                         .then(Commands.literal("createblank")
-                                .requires(source -> source.getSender().hasPermission("paperpolar.createblank"))
+                                .requires(source -> source.getSender().hasPermission("polarpaper.createblank"))
                                 .executes(ctx -> {
                                     ctx.getSource().getSender().sendMessage(
                                             Component.text()
@@ -63,13 +63,11 @@ public class PolarCommand {
                                 .then(Commands.argument("worldname", StringArgumentType.greedyString())
                                         .executes(CreateBlankCommand::run)))
                         .then(Commands.literal("save")
-                                .requires(source -> source.getSender().hasPermission("paperpolar.save"))
+                                .requires(source -> source.getSender().hasPermission("polarpaper.save"))
                                 .executes(ctx -> {
                                     ctx.getSource().getSender().sendMessage(
                                             Component.text()
-                                                    .append(Component.text("Usage: /polar save <worldname> to save all chunks\n", NamedTextColor.RED))
-                                                    .append(Component.text(" OR /polar save <worldname> [chunk radius] [centered] to save a region", NamedTextColor.RED))
-                                                    .append(Component.text("\nUse centered to center the saved radius around your player", NamedTextColor.RED))
+                                                    .append(Component.text("Usage: /polar save <worldname>\n", NamedTextColor.RED))
                                     );
                                     return Command.SINGLE_SUCCESS;
                                 })
@@ -87,14 +85,9 @@ public class PolarCommand {
                                             }
                                             return builder.buildFuture();
                                         })
-                                        .executes(SaveCommand::run)
-                                        .then(Commands.argument("chunkradius", IntegerArgumentType.integer(1))
-                                                .executes(SaveCommand::runSelected)
-                                                .then(Commands.literal("centered")
-                                                        .executes(SaveCommand::runSelectedCentered))
-                                        )))
+                                        .executes(SaveCommand::run)))
                         .then(Commands.literal("load")
-                                .requires(source -> source.getSender().hasPermission("paperpolar.load"))
+                                .requires(source -> source.getSender().hasPermission("polarpaper.load"))
                                 .executes(ctx -> {
                                     ctx.getSource().getSender().sendMessage(
                                             Component.text()
@@ -105,7 +98,7 @@ public class PolarCommand {
                                 .then(Commands.argument("worldname", StringArgumentType.greedyString())
                                         .executes(LoadCommand::run)))
                         .then(Commands.literal("unload")
-                                .requires(source -> source.getSender().hasPermission("paperpolar.load"))
+                                .requires(source -> source.getSender().hasPermission("polarpaper.unload"))
                                 .executes(ctx -> {
                                     ctx.getSource().getSender().sendMessage(
                                             Component.text()
@@ -147,7 +140,7 @@ public class PolarCommand {
                                         })
                                         .executes(InfoCommand::runArg)))
                         .then(Commands.literal("setspawn")
-                                .requires(source -> source.getSender().hasPermission("polarpaper.info"))
+                                .requires(source -> source.getSender().hasPermission("polarpaper.setspawn"))
                                 .executes(ctx -> SetSpawnCommand.run(ctx, false))
                                 .then(Commands.literal("rounded")
                                         .executes(ctx -> SetSpawnCommand.run(ctx, true)))
@@ -166,15 +159,12 @@ public class PolarCommand {
                                         ctx.getSource().getSender().sendMessage(
                                                 Component.text()
                                                         .append(Component.text("Usage: /polar convert <new worldname> <chunk radius> (While in a non-polar world) to convert the chunks around you", NamedTextColor.RED))
-                                                        .append(Component.text(" OR: /polar convert <new worldname> <chunk radius> centered (While in a non-polar world) to center the new converted chunks at 0,0", NamedTextColor.RED))
                                         );
                                         return Command.SINGLE_SUCCESS;
                                     })
                                     .then(Commands.argument("newworldname", StringArgumentType.string())
                                             .then(Commands.argument("chunkradius", IntegerArgumentType.integer(1))
                                                         .executes(ConvertCommand::run)
-                                                        .then(Commands.literal("centered")
-                                                                    .executes(ConvertCommand::runCentered))
                                             )
                                     )
                         )

@@ -66,24 +66,14 @@ public class UnloadCommand {
         if (shouldSave) {
             ctx.getSource().getSender().sendMessage(
                     Component.text()
-                            .append(Component.text("Saving '", NamedTextColor.AQUA))
-                            .append(Component.text(worldName, NamedTextColor.AQUA))
-                            .append(Component.text("'...", NamedTextColor.AQUA))
+                            .append(Component.text("Saving '", NamedTextColor.GRAY))
+                            .append(Component.text(worldName, NamedTextColor.GRAY))
+                            .append(Component.text("'...", NamedTextColor.GRAY))
             );
 
             Bukkit.getAsyncScheduler().runNow(PolarPaper.getPlugin(), (task) -> {
-                Polar.saveWorldConfigSource(bukkitWorld).thenAccept(successful -> {
-                    if (successful) {
-                        bukkitUnload(ctx, bukkitWorld);
-                    } else {
-                        ctx.getSource().getSender().sendMessage(
-                                Component.text()
-                                        .append(Component.text("Something went wrong while trying to save '", NamedTextColor.RED))
-                                        .append(Component.text(worldName, NamedTextColor.RED))
-                                        .append(Component.text("', world will not be unloaded", NamedTextColor.RED))
-                        );
-                    }
-                });
+                Polar.saveWorldToFile(bukkitWorld);
+                bukkitUnload(ctx, bukkitWorld);
             });
 
         } else {

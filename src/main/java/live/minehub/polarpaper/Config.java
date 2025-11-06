@@ -1,5 +1,6 @@
 package live.minehub.polarpaper;
 
+import live.minehub.polarpaper.util.ExceptionUtil;
 import net.minecraft.world.Difficulty;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -13,10 +14,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Level;
 
 public record Config(
-        @NotNull String source,
         int autoSaveIntervalTicks,
         long time,
         boolean saveOnStop,
@@ -25,7 +24,6 @@ public record Config(
         @NotNull Difficulty difficulty,
         boolean allowMonsters,
         boolean allowAnimals,
-        boolean allowWorldExpansion,
         @NotNull WorldType worldType,
         @NotNull World.Environment environment,
         @NotNull Map<String, Object> gamerules
@@ -37,16 +35,14 @@ public record Config(
         put("randomTickSpeed", 0);
         put("mobGriefing", false);
         put("doVinesSpread", false);
-        put("pvp", true);
-        put("projectilesCanBreakBlocks", false);
         put("tntExplodes", false);
         put("coralDeath", false); // custom gamerule
-        put("blockPhysics", false); // custom gamerule
-        put("liquidPhysics", false); // custom gamerule
+        put("blockPhysics", true); // custom gamerule
+        put("blockGravity", true); // custom gamerule
+        put("liquidPhysics", true); // custom gamerule
     }};
 
-    public static final Config DEFAULT = new Config(
-            "file",
+    public static final Config BLANK_DEFAULT = new Config(
             -1,
             1000L,
             false,
@@ -55,13 +51,18 @@ public record Config(
             Difficulty.NORMAL,
             true,
             true,
-            true,
             WorldType.NORMAL,
             World.Environment.NORMAL,
             DEFAULT_GAMERULES
     );
 
-    public static @NotNull Config getDefaultConfig(World world) {
+    public static Config getDefaultConfig(FileConfiguration config) {
+        return readPrefixFromConfig(config, "default.", BLANK_DEFAULT);
+    }
+
+    public static @NotNull Config getDefaultConfig(FileConfiguration config, World world) {
+        Config defaultConfig = getDefaultConfig(config);
+
         // Add gamerules from world into config
         Map<String, Object> gameruleMap = new HashMap<>(Config.DEFAULT_GAMERULES);
 
@@ -78,16 +79,14 @@ public record Config(
         }
 
         return new Config(
-                "file",
-                -1,
+                defaultConfig.autoSaveIntervalTicks,
                 world.getFullTime(),
-                Config.DEFAULT.saveOnStop,
-                Config.DEFAULT.loadOnStartup,
+                defaultConfig.saveOnStop,
+                defaultConfig.loadOnStartup,
                 world.getSpawnLocation(),
                 Difficulty.valueOf(world.getDifficulty().name()),
                 world.getAllowMonsters(),
                 world.getAllowAnimals(),
-                Config.DEFAULT.allowWorldExpansion,
                 WorldType.NORMAL,
                 world.getEnvironment(),
                 gameruleMap
@@ -99,19 +98,20 @@ public record Config(
     }
 
     public @NotNull Config withSpawnPos(Location location) {
-        return new Config(this.source, this.autoSaveIntervalTicks, this.time, this.saveOnStop, this.loadOnStartup, location, this.difficulty, this.allowMonsters, this.allowAnimals, this.allowWorldExpansion, this.worldType, this.environment, this.gamerules);
+        return new Config(this.autoSaveIntervalTicks, this.time, this.saveOnStop, this.loadOnStartup, location, this.difficulty, this.allowMonsters, this.allowAnimals, this.worldType, this.environment, this.gamerules);
     }
 
 
     public static @NotNull Config readFromConfig(FileConfiguration config, String worldName) {
-        return readFromConfig(config, worldName, DEFAULT);
+        return readFromConfig(config, worldName, getDefaultConfig(config));
     }
 
     public static @NotNull Config readFromConfig(FileConfiguration config, String worldName, Config defaultConfig) {
-        String prefix = String.format("worlds.%s.", worldName);
+        return readPrefixFromConfig(config, String.format("worlds.%s.", worldName), defaultConfig);
+    }
 
+    private static @NotNull Config readPrefixFromConfig(FileConfiguration config, String prefix, Config defaultConfig) {
         try {
-            String source = config.getString(prefix + "source", defaultConfig.source);
             int autoSaveIntervalTicks = config.getInt(prefix + "autosaveIntervalTicks", defaultConfig.autoSaveIntervalTicks);
             long time = config.getLong(prefix + "time", defaultConfig.time);
             boolean saveOnStop = config.getBoolean(prefix + "saveOnStop", defaultConfig.saveOnStop);
@@ -120,7 +120,6 @@ public record Config(
             Difficulty difficulty = Difficulty.valueOf(config.getString(prefix + "difficulty", defaultConfig.difficulty.name()));
             boolean allowMonsters = config.getBoolean(prefix + "allowMonsters", defaultConfig.allowMonsters);
             boolean allowAnimals = config.getBoolean(prefix + "allowAnimals", defaultConfig.allowAnimals);
-            boolean allowWorldExpansion = config.getBoolean(prefix + "allowWorldExpansion", defaultConfig.allowWorldExpansion);
             WorldType worldType = WorldType.valueOf(config.getString(prefix + "worldType", defaultConfig.worldType.name()));
             World.Environment environment = World.Environment.valueOf(config.getString(prefix + "environment", defaultConfig.environment.name()));
 
@@ -133,7 +132,6 @@ public record Config(
 
 
             return new Config(
-                    source,
                     autoSaveIntervalTicks,
                     time,
                     saveOnStop,
@@ -142,22 +140,24 @@ public record Config(
                     difficulty,
                     allowMonsters,
                     allowAnimals,
-                    allowWorldExpansion,
                     worldType,
                     environment,
                     gamerulesMap
             );
         } catch (IllegalArgumentException e) {
             PolarPaper.logger().warning("Failed to read config, using defaults");
-            PolarPaper.logger().log(Level.INFO, e.getMessage(), e);
+            ExceptionUtil.log(e);
             return defaultConfig;
         }
+    }
+
+    public static void writeDefaultToConfig(FileConfiguration fileConfig, String worldName) {
+        writeToConfig(fileConfig, worldName, getDefaultConfig(fileConfig));
     }
 
     public static void writeToConfig(FileConfiguration fileConfig, String worldName, Config config) {
         String prefix = String.format("worlds.%s.", worldName);
 
-        fileConfig.set(prefix + "source", config.source);
         fileConfig.set(prefix + "autosaveIntervalTicks", config.autoSaveIntervalTicks);
         fileConfig.set(prefix + "time", config.time);
         fileConfig.setInlineComments(prefix + "autosaveIntervalTicks", List.of("-1 to disable"));
@@ -167,14 +167,13 @@ public record Config(
         fileConfig.set(prefix + "difficulty", config.difficulty.name());
         fileConfig.set(prefix + "allowMonsters", config.allowMonsters);
         fileConfig.set(prefix + "allowAnimals", config.allowAnimals);
-        fileConfig.set(prefix + "allowWorldExpansion", config.allowWorldExpansion);
         fileConfig.setInlineComments(prefix + "allowWorldExpansion", List.of("Whether the world can grow and load more chunks"));
         fileConfig.set(prefix + "worldType", config.worldType.name());
         fileConfig.setInlineComments(prefix + "worldType", List.of("One of: NORMAL, FLAT, AMPLIFIED, LARGE_BIOMES"));
         fileConfig.set(prefix + "environment", config.environment.name());
         fileConfig.setInlineComments(prefix + "environment", List.of("One of: NORMAL, NETHER, THE_END, CUSTOM"));
         fileConfig.set(prefix + "gamerules", config.gamerulesList());
-        fileConfig.setInlineComments(prefix + "gamerules", List.of("Custom rules: liquidPhysics, blockPhysics, coralDeath"));
+        fileConfig.setInlineComments(prefix + "gamerules", List.of("Custom rules: liquidPhysics, blockPhysics, blockGravity, coralDeath"));
 
         Path pluginFolder = Path.of(PolarPaper.getPlugin().getDataFolder().getAbsolutePath());
         Path configFile = pluginFolder.resolve("config.yml");
@@ -182,7 +181,7 @@ public record Config(
             fileConfig.save(configFile.toFile());
         } catch (IOException e) {
             PolarPaper.logger().warning("Failed to save world to config file");
-            PolarPaper.logger().warning(e.toString());
+            ExceptionUtil.log(e);
         }
     }
 
@@ -212,11 +211,11 @@ public record Config(
                 return new Location(null, Double.parseDouble(x), Double.parseDouble(y), Double.parseDouble(z), Float.parseFloat(yaw), Float.parseFloat(pitch));
             } else {
                 PolarPaper.logger().warning("Failed to parse spawn pos: " + string);
-                return DEFAULT.spawn;
+                return BLANK_DEFAULT.spawn;
             }
         } catch (Exception e) {
             PolarPaper.logger().warning("Failed to parse spawn pos: " + string);
-            return DEFAULT.spawn;
+            return BLANK_DEFAULT.spawn;
         }
     }
 

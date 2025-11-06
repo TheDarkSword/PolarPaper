@@ -22,6 +22,17 @@ public class PolarListener implements Listener {
 
         ChunkGenerator generator = event.getWorld().getGenerator();
         if (!(generator instanceof PolarGenerator polarGenerator)) return;
+
+        // TODO: investigate further
+//        CraftChunk craftChunk = ((CraftChunk) event.getChunk());
+//        boolean wasUnsaved = craftChunk.getHandle(ChunkStatus.FULL).tryMarkSaved();
+//        System.out.println("Marked saved: " + wasUnsaved + " (" + chunk.x() + ", " + chunk.z() + ")");
+//
+//        Bukkit.getScheduler().runTaskLater(PolarPaper.getPlugin(), () -> {
+//            boolean wasUnsaved2 = craftChunk.getHandle(ChunkStatus.FULL).tryMarkSaved();
+//            System.out.println("Marked saved again: " + wasUnsaved2 + " (" + chunk.x() + ", " + chunk.z() + ")");
+//        }, 40);
+
         PolarWorldAccess worldAccess = polarGenerator.getWorldAccess();
         if (chunk.userData().length > 0) {
             worldAccess.populateChunkData(event.getChunk(), chunk.userData());
@@ -33,7 +44,7 @@ public class PolarListener implements Listener {
         PolarGenerator generator = PolarGenerator.fromWorld(event.getBlock().getWorld());
         if (generator == null) return;
         Config config = generator.getConfig();
-        Object enabled = config.gamerules().getOrDefault("coralDeath", false);
+        Object enabled = config.gamerules().getOrDefault("coralDeath", true);
         if (!(enabled instanceof Boolean enabledBool)) return;
         event.setCancelled(!enabledBool);
     }
@@ -43,7 +54,7 @@ public class PolarListener implements Listener {
         PolarGenerator generator = PolarGenerator.fromWorld(event.getBlock().getWorld());
         if (generator == null) return;
         Config config = generator.getConfig();
-        Object enabled = config.gamerules().getOrDefault("liquidPhysics", false);
+        Object enabled = config.gamerules().getOrDefault("liquidPhysics", true);
         if (!(enabled instanceof Boolean enabledBool)) return;
         event.setCancelled(!enabledBool);
     }
@@ -53,7 +64,7 @@ public class PolarListener implements Listener {
         PolarGenerator generator = PolarGenerator.fromWorld(event.getBlock().getWorld());
         if (generator == null) return;
         Config config = generator.getConfig();
-        Object enabled = config.gamerules().getOrDefault("blockPhysics", false);
+        Object enabled = config.gamerules().getOrDefault("blockPhysics", true);
         if (!(enabled instanceof Boolean enabledBool)) return;
         event.setCancelled(!enabledBool);
     }
@@ -65,7 +76,7 @@ public class PolarListener implements Listener {
         PolarGenerator generator = PolarGenerator.fromWorld(event.getBlock().getWorld());
         if (generator == null) return;
         Config config = generator.getConfig();
-        Object enabled = config.gamerules().getOrDefault("blockPhysics", false);
+        Object enabled = config.gamerules().getOrDefault("blockGravity", true);
         if (!(enabled instanceof Boolean enabledBool)) return;
         event.setCancelled(!enabledBool);
     }

@@ -3,14 +3,17 @@ package live.minehub.polarpaper;
 import live.minehub.polarpaper.util.CoordConversion;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.chunk.ChunkAccess;
+import net.minecraft.world.level.chunk.LevelChunkSection;
+import net.minecraft.world.level.chunk.PalettedContainer;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
-import org.bukkit.block.data.BlockData;
 import org.bukkit.craftbukkit.CraftServer;
-import org.bukkit.craftbukkit.block.CraftBlockState;
+import org.bukkit.craftbukkit.block.data.CraftBlockData;
 import org.bukkit.craftbukkit.generator.CraftChunkData;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.generator.WorldInfo;
@@ -20,9 +23,6 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Random;
 
 public class PolarGenerator extends ChunkGenerator {
-
-    private static final int CHUNK_SECTION_SIZE = 16;
-
     private final PolarWorld polarWorld;
     private final PolarWorldAccess worldAccess;
     private Config config;
@@ -40,22 +40,22 @@ public class PolarGenerator extends ChunkGenerator {
     @Override
     public void generateSurface(@NotNull WorldInfo worldInfo, @NotNull Random random, int chunkX, int chunkZ, @NotNull ChunkData chunkData) {
         PolarChunk chunk = polarWorld.chunkAt(chunkX, chunkZ);
-        if (chunk == null) {
-            if (!config.allowWorldExpansion()) return;
-            polarWorld.addExpandChunk(chunkX, chunkZ);
-            return;
-        }
+        if (chunk == null) return;
 
+//        long before = System.nanoTime();
+
+        ChunkAccess chunkAccess = ((CraftChunkData) chunkData).getHandle();
         int i = 0;
         for (PolarSection section : chunk.sections()) {
-            int yLevel = CoordConversion.sectionIndexToY(polarWorld.minSection() + i++);
-            loadSection(section, yLevel, chunkData);
+            LevelChunkSection chunkAccessSection = chunkAccess.getSection(i++);
+
+            loadSection(section, chunkAccess, chunkAccessSection);
         }
 
         // TODO: load light
 
         for (PolarChunk.BlockEntity blockEntity : chunk.blockEntities()) {
-            loadBlockEntity(blockEntity, chunkData, chunkX, chunkZ);
+            loadBlockEntity(blockEntity, chunkAccess, chunkX, chunkZ);
         }
 
         this.worldAccess.loadHeightmaps(chunkData, chunk.heightmaps());
@@ -63,64 +63,61 @@ public class PolarGenerator extends ChunkGenerator {
         if (chunk.userData().length > 0) {
             this.worldAccess.loadChunkData(chunkData, chunk.userData());
         }
+
+//        System.out.println("Generated surface in " + (System.nanoTime() - before) + "ns");
     }
 
-    private void loadBlockEntity(@NotNull PolarChunk.BlockEntity polarBlockEntity, @NotNull ChunkData chunkData, int chunkX, int chunkZ) {
+    private void loadBlockEntity(@NotNull PolarChunk.BlockEntity polarBlockEntity, @NotNull ChunkAccess chunkAccess, int chunkX, int chunkZ) {
         CompoundTag compoundTag = polarBlockEntity.data();
         if (compoundTag == null) return;
+        if (polarBlockEntity.id() != null) compoundTag.putString("id", polarBlockEntity.id());
 
         int x = CoordConversion.chunkBlockIndexGetX(polarBlockEntity.index());
         int y = CoordConversion.chunkBlockIndexGetY(polarBlockEntity.index());
         int z = CoordConversion.chunkBlockIndexGetZ(polarBlockEntity.index());
-        BlockData blockData = chunkData.getBlockData(x, y, z);
 
-        if (polarBlockEntity.id() != null) compoundTag.putString("id", polarBlockEntity.id());
-
-        BlockState blockState = ((CraftBlockState) blockData.createBlockState()).getHandle();
+        BlockState blockState = chunkAccess.getBlockState(x, y, z);
         BlockPos blockPos = new BlockPos(chunkX * 16 + x, y, chunkZ * 16 + z);
 
         var registryAccess = ((CraftServer) Bukkit.getServer()).getServer().registryAccess();
         BlockEntity blockEntity = BlockEntity.loadStatic(blockPos, blockState, compoundTag, registryAccess);
         if (blockEntity == null) return;
 
-        // ((CraftChunkData)chunkData).getHandle().setBlockEntity(blockEntity);
-        ((CraftChunkData)chunkData).getHandle().blockEntities.put(blockPos, blockEntity);
+        // chunkAccess.setBlockEntity(blockEntity);
+        chunkAccess.blockEntities.put(blockPos, blockEntity);
     }
 
-    private void loadSection(@NotNull PolarSection section, int yLevel, @NotNull ChunkData chunkData) {
+    private void loadSection(@NotNull PolarSection section, @NotNull ChunkAccess chunkAccess, LevelChunkSection chunkAccessSection) {
         // Blocks
+        int[] blockData = section.blockData();
+        if (blockData == null) return;
+
         String[] rawBlockPalette = section.blockPalette();
-        BlockData[] materialPalette = new BlockData[rawBlockPalette.length];
+        BlockState[] materialPalette = new BlockState[rawBlockPalette.length];
         for (int i = 0; i < rawBlockPalette.length; i++) {
             try {
-                materialPalette[i] = Bukkit.getServer().createBlockData(rawBlockPalette[i]);
+                materialPalette[i] = ((CraftBlockData) Bukkit.getServer().createBlockData(rawBlockPalette[i])).getState();
             } catch (IllegalArgumentException e) {
                 PolarPaper.logger().warning("Failed to parse block state: " + rawBlockPalette[i]);
-                materialPalette[i] = Bukkit.getServer().createBlockData("minecraft:air");
+                materialPalette[i] = Blocks.AIR.defaultBlockState();
             }
         }
 
-        if (materialPalette.length == 1) {
-            BlockData material = materialPalette[0];
-            for (int x = 0; x < 16; x++) {
-                for (int y = 0; y < 16; y++) {
-                    for (int z = 0; z < 16; z++) {
-                        chunkData.setBlock(x, yLevel + y, z, material);
-                    }
-                }
-            }
-        } else {
-            int[] blockData = section.blockData();
-            for (int x = 0; x < 16; x++) {
-                for (int y = 0; y < 16; y++) {
-                    for (int z = 0; z < 16; z++) {
-                        int index = y * CHUNK_SECTION_SIZE * CHUNK_SECTION_SIZE + z * CHUNK_SECTION_SIZE + x;
-                        BlockData material = materialPalette[blockData[index]];
-                        chunkData.setBlock(x, yLevel + y, z, material);
-                    }
+        PalettedContainer<BlockState> states = chunkAccessSection.getStates();
+//        states.acquire();
+
+        int blockIndex = 0;
+        for (int y = 0; y < 16; y++) {
+            for (int z = 0; z < 16; z++) {
+                for (int x = 0; x < 16; x++) {
+                    states.set(x, y, z, materialPalette[blockData[blockIndex]]);
+                    blockIndex++;
                 }
             }
         }
+        chunkAccessSection.recalcBlockCounts();
+
+//        states.release();
     }
 
     public PolarWorld getPolarWorld() {
@@ -137,6 +134,11 @@ public class PolarGenerator extends ChunkGenerator {
 
     public void setConfig(Config config) {
         this.config = config;
+    }
+
+    @Override
+    public boolean isParallelCapable() {
+        return true;
     }
 
     @Override

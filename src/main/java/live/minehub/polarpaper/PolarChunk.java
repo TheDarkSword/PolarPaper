@@ -51,6 +51,10 @@ public record PolarChunk(
         Arrays.setAll(sections, (i) -> new PolarSection());
     }
 
+    public PolarChunk withUserData(byte[] newUserData) {
+        return new PolarChunk(x, z, sections, blockEntities, heightmaps, newUserData);
+    }
+
     public record BlockEntity(
             int index,
             @Nullable String id,

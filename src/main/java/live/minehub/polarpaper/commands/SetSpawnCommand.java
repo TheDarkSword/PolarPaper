@@ -11,6 +11,7 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.command.CommandSender;
+import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 
 public class SetSpawnCommand {
@@ -36,7 +37,8 @@ public class SetSpawnCommand {
             return Command.SINGLE_SUCCESS;
         }
 
-        Config config = Config.readFromConfig(PolarPaper.getPlugin().getConfig(), bukkitWorld.getName(), Config.getDefaultConfig(bukkitWorld));
+        FileConfiguration fileConfig = PolarPaper.getPlugin().getConfig();
+        Config config = Config.readFromConfig(fileConfig, bukkitWorld.getName(), Config.getDefaultConfig(fileConfig, bukkitWorld));
 
         Location spawnPos = player.getLocation().clone();
         if (rounded) {

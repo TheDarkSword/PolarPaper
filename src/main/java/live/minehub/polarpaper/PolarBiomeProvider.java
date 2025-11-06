@@ -14,8 +14,10 @@ import java.util.List;
 
 public class PolarBiomeProvider extends BiomeProvider {
 
+    private final Registry<@NotNull Biome> biomeRegistry;
     private final @NotNull PolarWorld polarWorld;
     public PolarBiomeProvider(@NotNull PolarWorld polarWorld) {
+        this.biomeRegistry = RegistryAccess.registryAccess().getRegistry(RegistryKey.BIOME);
         this.polarWorld = polarWorld;
     }
 
@@ -47,12 +49,14 @@ public class PolarBiomeProvider extends BiomeProvider {
             return parseBiome(rawBiomePalette[0]);
         }
 
+        int[] biomeDataArray = section.biomeData();
+        if (biomeDataArray == null) return defaultBiome;
+
         int localX = CoordConversion.globalToSectionRelative(x);
         int localY = CoordConversion.globalToSectionRelative(y);
         int localZ = CoordConversion.globalToSectionRelative(z);
 
         int index = localX / 4 + (localZ / 4) * 4 + (localY / 4) * 16;
-        int[] biomeDataArray = section.biomeData();
 
         int biomeData = biomeDataArray[index];
         return parseBiome(rawBiomePalette[biomeData]);
@@ -60,14 +64,12 @@ public class PolarBiomeProvider extends BiomeProvider {
 
     @Override
     public @NotNull List<Biome> getBiomes(@NotNull WorldInfo worldInfo) {
-        Registry<Biome> registry = RegistryAccess.registryAccess().getRegistry(RegistryKey.BIOME);
-        return registry.stream().toList();
+        return biomeRegistry.stream().toList();
     }
 
     private Biome parseBiome(String s) {
-        Registry<Biome> registry = RegistryAccess.registryAccess().getRegistry(RegistryKey.BIOME);
         try {
-            return registry.get(Key.key(s));
+            return biomeRegistry.get(Key.key(s));
         } catch (IllegalArgumentException e) {
             PolarPaper.logger().warning("Failed to parse biome " + s);
             return Biome.PLAINS;

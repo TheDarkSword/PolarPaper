@@ -1,1 +1,23 @@
 # Config for polar worlds
+default:
+  autosaveIntervalTicks: -1 # -1 to disable
+  time: 1000
+  saveOnStop: false
+  loadOnStartup: true
+  spawn: 0.0, 64.0, 0.0, 0.0, 0.0
+  difficulty: NORMAL
+  allowMonsters: true
+  allowAnimals: true
+  worldType: NORMAL # One of: NORMAL, FLAT, AMPLIFIED, LARGE_BIOMES
+  environment: NORMAL # One of: NORMAL, NETHER, THE_END, CUSTOM
+  gamerules: # Custom rules: liquidPhysics, blockPhysics, blockGravity, coralDeath
+    - doMobSpawning: false
+    - doFireTick: false
+    - randomTickSpeed: 0
+    - mobGriefing: false
+    - doVinesSpread: false
+    - tntExplodes: false
+    - coralDeath: false
+    - blockPhysics: true
+    - blockGravity: true
+    - liquidPhysics: true
