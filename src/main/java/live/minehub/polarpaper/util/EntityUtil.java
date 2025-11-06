@@ -23,11 +23,7 @@ import org.bukkit.entity.EntityType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
@@ -41,14 +37,7 @@ public class EntityUtil {
 
     }
 
-    public static List<PolarChunk.Entity> getEntities(byte @Nullable [] userData) {
-        if (userData == null) return List.of();
-
-        final var bb = ByteBuffer.wrap(userData);
-
-        // Skip the version
-        bb.get();
-
+    public static List<PolarChunk.Entity> getEntities(ByteBuffer bb) {
         List<PolarChunk.Entity> polarEntities = new ArrayList<>();
         int entityCount = getVarInt(bb);
         for (int i = 0; i < entityCount; i++) {
