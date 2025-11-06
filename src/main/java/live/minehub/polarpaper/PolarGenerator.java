@@ -90,7 +90,6 @@ public class PolarGenerator extends ChunkGenerator {
     private void loadSection(@NotNull PolarSection section, @NotNull ChunkAccess chunkAccess, LevelChunkSection chunkAccessSection) {
         // Blocks
         int[] blockData = section.blockData();
-        if (blockData == null) return;
 
         String[] rawBlockPalette = section.blockPalette();
         BlockState[] materialPalette = new BlockState[rawBlockPalette.length];
@@ -106,12 +105,25 @@ public class PolarGenerator extends ChunkGenerator {
         PalettedContainer<BlockState> states = chunkAccessSection.getStates();
 //        states.acquire();
 
-        int blockIndex = 0;
-        for (int y = 0; y < 16; y++) {
-            for (int z = 0; z < 16; z++) {
-                for (int x = 0; x < 16; x++) {
-                    states.set(x, y, z, materialPalette[blockData[blockIndex]]);
-                    blockIndex++;
+        if (rawBlockPalette.length <= 1) {
+            BlockState blockState = materialPalette[0];
+            if (blockState.isAir()) return;
+
+            for (int y = 0; y < 16; y++) {
+                for (int z = 0; z < 16; z++) {
+                    for (int x = 0; x < 16; x++) {
+                        states.set(x, y, z, blockState);
+                    }
+                }
+            }
+        } else {
+            int blockIndex = 0;
+            for (int y = 0; y < 16; y++) {
+                for (int z = 0; z < 16; z++) {
+                    for (int x = 0; x < 16; x++) {
+                        states.set(x, y, z, materialPalette[blockData[blockIndex]]);
+                        blockIndex++;
+                    }
                 }
             }
         }

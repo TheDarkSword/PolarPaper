@@ -37,6 +37,7 @@ import net.minecraft.world.Difficulty;
 import net.minecraft.world.level.*;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.biome.BiomeManager;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
@@ -633,7 +634,8 @@ public class Polar {
                 for (Object p : palette) {
                     if (p == null) continue;
                     if (!(p instanceof BlockState blockState)) continue;
-                    blockPaletteStrings.add(blockState.toString());
+                    blockPaletteStrings.add(blockState.toString()
+                            .replace("Block{", "").replace("}", "")); // e.g. Block{minecraft:oak_fence}[...] to minecraft:oak_fence[...]
                 }
 
                 BitStorage blockBitStorage = blockPaletteData.storage();
@@ -644,6 +646,9 @@ public class Polar {
                     int paletteIdx = blockBitStorage.get(index);
                     blockData[index] = paletteIdx;
                 }
+            } else {
+                blockPaletteStrings.add(Blocks.AIR.defaultBlockState().toString()
+                        .replace("Block{", "").replace("}", ""));
             }
             PalettedContainer.Data<Holder<Biome>> biomePaletteData = ((PalettedContainer<Holder<Biome>>)chunkAccessSection.getBiomes()).data;
             Object[] biomePalette = biomePaletteData.moonrise$getPalette();

@@ -4,6 +4,7 @@ import ca.spottedleaf.moonrise.common.PlatformHooks;
 import com.google.common.io.ByteArrayDataOutput;
 import com.mojang.logging.LogUtils;
 import live.minehub.polarpaper.PolarChunk;
+import live.minehub.polarpaper.PolarPaper;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtAccounter;
 import net.minecraft.nbt.NbtIo;
@@ -28,6 +29,7 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
 import static live.minehub.polarpaper.util.ByteArrayUtil.*;
 
@@ -89,7 +91,23 @@ public class EntityUtil {
         ProblemReporter.ScopedCollector problemReporter = new ProblemReporter.ScopedCollector(() -> "serialiseEntity@" + entity.getUniqueId(), LogUtils.getLogger());
         TagValueOutput tagValueOutput = TagValueOutput.createWithContext(problemReporter, nmsEntity.registryAccess());
 
-        boolean successful = ((CraftEntity) entity).getHandle().saveAsPassenger(tagValueOutput, true, false, false);
+        boolean successful;
+        try {
+            successful = ((CraftEntity) entity).getHandle().saveAsPassenger(tagValueOutput, true, false, false);
+        } catch (Exception e) {
+            // saveAsPassenger sometimes calls events (e.g. VillagerAcquireTradeEvent), causing errors when called async so try again synchronously
+            CompletableFuture<Boolean> successfulFuture = new CompletableFuture<>();
+            Bukkit.getScheduler().runTask(PolarPaper.getPlugin(), () -> {
+                try {
+                    boolean successful2 = ((CraftEntity) entity).getHandle().saveAsPassenger(tagValueOutput, true, false, false);
+                    successfulFuture.complete(successful2);
+                } catch (Exception e2) {
+                    PolarPaper.logger().warning("Failed to serialize entity");
+                    ExceptionUtil.log(e2);
+                }
+            });
+            successful = successfulFuture.join();
+        }
 
         CompoundTag compound = tagValueOutput.buildResult();
 
