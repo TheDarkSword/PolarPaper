@@ -1,19 +1,25 @@
 package live.minehub.polarpaper;
 
 import com.google.common.io.ByteArrayDataOutput;
+import live.minehub.polarpaper.util.ByteArrayUtil;
 import live.minehub.polarpaper.util.EntityUtil;
+import live.minehub.polarpaper.util.ExceptionUtil;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
+import org.bukkit.craftbukkit.persistence.DirtyCraftPersistentDataContainer;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Painting;
 import org.bukkit.generator.ChunkGenerator;
+import org.bukkit.persistence.PersistentDataContainer;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -33,15 +39,22 @@ public interface PolarWorldAccess {
 
     /**
      * Provides features implemented by polar paper specifically not available in the standard polar format. Currently
-     * just entities.
+     * entities and the chunk persistent data container.
      */
     PolarWorldAccess POLAR_PAPER_FEATURES = new PolarWorldAccess() {
         // Current version of the features chunk data
-        private static final byte CURRENT_FEATURES_VERSION = 1;
+        private static final byte CURRENT_FEATURES_VERSION = 2;
+        private static final byte PERSISTENT_DATA_CONTAINER_VERSION = 2;
 
         @Override
         public void populateChunkData(@NotNull final Chunk chunk, final byte @Nullable [] userData) {
-            List<PolarChunk.Entity> entities = EntityUtil.getEntities(userData);
+            if (userData == null) return;
+
+            final var bb = ByteBuffer.wrap(userData);
+
+            byte version = bb.get();
+
+            List<PolarChunk.Entity> entities = EntityUtil.getEntities(bb);
 
             for (PolarChunk.Entity polarEntity : entities) {
                 var x = polarEntity.x();
@@ -66,6 +79,17 @@ public interface PolarWorldAccess {
                 }
 
                 entity.spawnAt(new Location(chunk.getWorld(), x + chunk.getX() * 16, y, z + chunk.getZ() * 16, yaw, pitch));
+            }
+
+            if (version >= PERSISTENT_DATA_CONTAINER_VERSION) {
+                PersistentDataContainer persistentDataContainer = chunk.getPersistentDataContainer();
+                try {
+                    byte[] bytes = ByteArrayUtil.getByteArray(bb);
+                    persistentDataContainer.readFromBytes(bytes);
+                } catch (IOException e) {
+                    PolarPaper.logger().warning("Failed to deserialize persistent data container");
+                    ExceptionUtil.log(e);
+                }
             }
         }
 
@@ -95,6 +119,15 @@ public interface PolarWorldAccess {
 
             userData.writeByte(CURRENT_FEATURES_VERSION);
             EntityUtil.writeEntities(polarEntities, userData);
+
+            DirtyCraftPersistentDataContainer persistentDataContainer = chunk.persistentDataContainer;
+            try {
+                byte[] bytes = persistentDataContainer.serializeToBytes();
+                ByteArrayUtil.writeByteArray(bytes, userData);
+            } catch (IOException e) {
+                PolarPaper.logger().warning("Failed to deserialize persistent data container");
+                ExceptionUtil.log(e);
+            }
         }
 
     };
