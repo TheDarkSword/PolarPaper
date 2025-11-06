@@ -129,7 +129,7 @@ public class Polar {
      * @param worldName The name of the world to load
      * @return Whether loading the world was successful
      */
-    public static CompletableFuture<Boolean> loadWorld(@NotNull PolarSource source, @NotNull String worldName) {
+    public static CompletableFuture<@Nullable World> loadWorld(@NotNull PolarSource source, @NotNull String worldName) {
         return loadWorld(source, worldName, PolarWorldAccess.POLAR_PAPER_FEATURES);
     }
 
@@ -139,7 +139,7 @@ public class Polar {
      * @param worldName The name of the world to load
      * @return Whether loading the world was successful
      */
-    public static CompletableFuture<Boolean> loadWorldFromFile(@NotNull String worldName) {
+    public static CompletableFuture<@Nullable World> loadWorldFromFile(@NotNull String worldName) {
         return loadWorld(FilePolarSource.defaultFolder(worldName), worldName, PolarWorldAccess.POLAR_PAPER_FEATURES);
     }
 
@@ -150,11 +150,11 @@ public class Polar {
      * @param worldAccess Describes how userdata should be handled (default PolarWorldAccess.POLAR_PAPER_FEATURES)
      * @return Whether loading the world was successful
      */
-    public static CompletableFuture<Boolean> loadWorld(@NotNull PolarSource source, @NotNull String worldName, @NotNull PolarWorldAccess worldAccess) {
+    public static CompletableFuture<@Nullable World> loadWorld(@NotNull PolarSource source, @NotNull String worldName, @NotNull PolarWorldAccess worldAccess) {
         FileConfiguration fileConfig = PolarPaper.getPlugin().getConfig();
         Config config = Config.readFromConfig(fileConfig, worldName); // If world not in config, use defaults
 
-        CompletableFuture<Boolean> future = new CompletableFuture<>();
+        CompletableFuture<@Nullable World> future = new CompletableFuture<>();
 
         Bukkit.getAsyncScheduler().runNow(PolarPaper.getPlugin(), task -> {
             try {
@@ -167,12 +167,11 @@ public class Polar {
                 }
 
                 Bukkit.getScheduler().runTask(PolarPaper.getPlugin(), () -> {
-                    createWorld(polarWorld, worldName, config, worldAccess);
-                    future.complete(true);
+                    createWorld(polarWorld, worldName, config, worldAccess).thenAccept(future::complete);
                 });
             } catch (Exception e) {
                 ExceptionUtil.log(e);
-                future.complete(false);
+                future.complete(null);
             }
         });
 
@@ -186,12 +185,12 @@ public class Polar {
      * @param worldName The name for the polar world
      * @param config Custom config for the polar world
      * @param worldAccess Describes how userdata should be handled (default PolarWorldAccess.POLAR_PAPER_FEATURES)
-     * @return The created bukkit world
+     * @return CompletableFuture with the created bukkit world (completes immediately if not async)
      */
-    public static @Nullable World createWorld(@NotNull PolarWorld world, @NotNull String worldName, @NotNull Config config, @NotNull PolarWorldAccess worldAccess) {
+    public static CompletableFuture<@Nullable World> createWorld(@NotNull PolarWorld world, @NotNull String worldName, @NotNull Config config, @NotNull PolarWorldAccess worldAccess) {
         if (Bukkit.getWorld(worldName) != null) {
             PolarPaper.logger().warning("A world with the name '" + worldName + "' already exists, skipping.");
-            return null;
+            return CompletableFuture.completedFuture(null);
         }
 
         PolarGenerator polar = new PolarGenerator(world, worldAccess, config);
@@ -203,15 +202,28 @@ public class Polar {
                 .generator(polar)
                 .biomeProvider(polarBiomeProvider);
 
-        World newWorld = loadWorld(worldCreator, config.difficulty(), config.gamerules(), config.allowMonsters(), config.allowAnimals(), config.time());
-        if (newWorld == null) {
-            PolarPaper.logger().warning("An error occurred loading polar world '" + worldName + "', skipping.");
-            return null;
+        CompletableFuture<@Nullable World> future = new CompletableFuture<>();
+
+        Runnable worldCreateRunnable = () -> {
+            World newWorld = createWorld(worldCreator, config.difficulty(), config.gamerules(), config.allowMonsters(), config.allowAnimals(), config.time());
+
+            if (newWorld == null) {
+                PolarPaper.logger().warning("An error occurred loading polar world '" + worldName + "', skipping.");
+                future.complete(null);
+                return;
+            }
+
+            startAutoSaveTask(newWorld, config);
+            future.complete(newWorld);
+        };
+
+        if (config.async()) {
+            Bukkit.getScheduler().runTaskAsynchronously(PolarPaper.getPlugin(), worldCreateRunnable);
+        } else {
+            worldCreateRunnable.run();
         }
 
-        startAutoSaveTask(newWorld, config);
-
-        return newWorld;
+        return future;
     }
 
     public static void startAutoSaveTask(World newWorld, Config config) {
@@ -263,6 +275,7 @@ public class Polar {
                 Difficulty.valueOf(world.getDifficulty().name()),
                 world.getAllowMonsters(),
                 world.getAllowAnimals(),
+                config.async(),
                 config.worldType(),
                 config.environment(),
                 defaultConfig.gamerules()
@@ -422,10 +435,10 @@ public class Polar {
     }
 
     @SuppressWarnings("UnstableApiUsage")
-    public static @Nullable World loadWorld(WorldCreator creator, Difficulty difficulty, Map<String, Object> gamerules, boolean allowMonsters, boolean allowAnimals, long time) {
-        // TODO: config option for async world loading
-
+    public static @Nullable World createWorld(WorldCreator creator, Difficulty difficulty, Map<String, Object> gamerules, boolean allowMonsters, boolean allowAnimals, long time) {
         CraftServer craftServer = (CraftServer) Bukkit.getServer();
+
+        boolean async = !craftServer.isPrimaryThread();
 
         // Check if already existing
         if (craftServer.getWorld(creator.name()) != null) {
@@ -577,13 +590,20 @@ public class Polar {
 
         serverLevel.setDayTime(time);
 
-        craftServer.getServer().addLevel(serverLevel); // Paper - Put world into worldlist before initing the world; move up
-        craftServer.getServer().initWorld(serverLevel, primaryLevelData, primaryLevelData.worldGenOptions());
+        Runnable initRunnable = () -> {
+            craftServer.getServer().addLevel(serverLevel); // Paper - Put world into worldlist before initing the world; move up
+            craftServer.getServer().initWorld(serverLevel, primaryLevelData, primaryLevelData.worldGenOptions());
 
-        serverLevel.getChunkSource().setSpawnSettings(allowMonsters, allowAnimals);
-        // Paper - Put world into worldlist before initing the world; move up
+            serverLevel.getChunkSource().setSpawnSettings(allowMonsters, allowAnimals);
+            // Paper - Put world into worldlist before initing the world; move up
 
-        craftServer.getServer().prepareLevel(serverLevel);
+            craftServer.getServer().prepareLevel(serverLevel);
+        };
+        if (async) {
+            Bukkit.getScheduler().runTask(PolarPaper.getPlugin(), initRunnable);
+        } else {
+            initRunnable.run();
+        }
 
         return serverLevel.getWorld();
     }

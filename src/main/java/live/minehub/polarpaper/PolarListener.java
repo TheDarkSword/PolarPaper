@@ -1,5 +1,7 @@
 package live.minehub.polarpaper;
 
+import net.minecraft.world.level.chunk.status.ChunkStatus;
+import org.bukkit.craftbukkit.CraftChunk;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockFadeEvent;
@@ -23,15 +25,10 @@ public class PolarListener implements Listener {
         ChunkGenerator generator = event.getWorld().getGenerator();
         if (!(generator instanceof PolarGenerator polarGenerator)) return;
 
-        // TODO: investigate further
-//        CraftChunk craftChunk = ((CraftChunk) event.getChunk());
-//        boolean wasUnsaved = craftChunk.getHandle(ChunkStatus.FULL).tryMarkSaved();
+        // TODO: chunks still seem to be getting marked unsaved when they shouldn't, worst case is the chunk gets resaved when it didn't need to
+        CraftChunk craftChunk = ((CraftChunk) event.getChunk());
+        boolean wasUnsaved = craftChunk.getHandle(ChunkStatus.FULL).tryMarkSaved();
 //        System.out.println("Marked saved: " + wasUnsaved + " (" + chunk.x() + ", " + chunk.z() + ")");
-//
-//        Bukkit.getScheduler().runTaskLater(PolarPaper.getPlugin(), () -> {
-//            boolean wasUnsaved2 = craftChunk.getHandle(ChunkStatus.FULL).tryMarkSaved();
-//            System.out.println("Marked saved again: " + wasUnsaved2 + " (" + chunk.x() + ", " + chunk.z() + ")");
-//        }, 40);
 
         PolarWorldAccess worldAccess = polarGenerator.getWorldAccess();
         if (chunk.userData().length > 0) {

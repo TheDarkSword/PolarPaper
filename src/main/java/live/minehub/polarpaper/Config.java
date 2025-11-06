@@ -24,6 +24,7 @@ public record Config(
         @NotNull Difficulty difficulty,
         boolean allowMonsters,
         boolean allowAnimals,
+        boolean async,
         @NotNull WorldType worldType,
         @NotNull World.Environment environment,
         @NotNull Map<String, Object> gamerules
@@ -51,6 +52,7 @@ public record Config(
             Difficulty.NORMAL,
             true,
             true,
+            false,
             WorldType.NORMAL,
             World.Environment.NORMAL,
             DEFAULT_GAMERULES
@@ -87,6 +89,7 @@ public record Config(
                 Difficulty.valueOf(world.getDifficulty().name()),
                 world.getAllowMonsters(),
                 world.getAllowAnimals(),
+                false,
                 WorldType.NORMAL,
                 world.getEnvironment(),
                 gameruleMap
@@ -98,7 +101,7 @@ public record Config(
     }
 
     public @NotNull Config withSpawnPos(Location location) {
-        return new Config(this.autoSaveIntervalTicks, this.time, this.saveOnStop, this.loadOnStartup, location, this.difficulty, this.allowMonsters, this.allowAnimals, this.worldType, this.environment, this.gamerules);
+        return new Config(this.autoSaveIntervalTicks, this.time, this.saveOnStop, this.loadOnStartup, location, this.difficulty, this.allowMonsters, this.allowAnimals, this.async, this.worldType, this.environment, this.gamerules);
     }
 
 
@@ -120,6 +123,7 @@ public record Config(
             Difficulty difficulty = Difficulty.valueOf(config.getString(prefix + "difficulty", defaultConfig.difficulty.name()));
             boolean allowMonsters = config.getBoolean(prefix + "allowMonsters", defaultConfig.allowMonsters);
             boolean allowAnimals = config.getBoolean(prefix + "allowAnimals", defaultConfig.allowAnimals);
+            boolean async = config.getBoolean(prefix + "async", defaultConfig.async);
             WorldType worldType = WorldType.valueOf(config.getString(prefix + "worldType", defaultConfig.worldType.name()));
             World.Environment environment = World.Environment.valueOf(config.getString(prefix + "environment", defaultConfig.environment.name()));
 
@@ -140,6 +144,7 @@ public record Config(
                     difficulty,
                     allowMonsters,
                     allowAnimals,
+                    async,
                     worldType,
                     environment,
                     gamerulesMap
@@ -167,7 +172,8 @@ public record Config(
         fileConfig.set(prefix + "difficulty", config.difficulty.name());
         fileConfig.set(prefix + "allowMonsters", config.allowMonsters);
         fileConfig.set(prefix + "allowAnimals", config.allowAnimals);
-        fileConfig.setInlineComments(prefix + "allowWorldExpansion", List.of("Whether the world can grow and load more chunks"));
+        fileConfig.set(prefix + "async", config.async);
+        fileConfig.setInlineComments(prefix + "async", List.of("Very experimental"));
         fileConfig.set(prefix + "worldType", config.worldType.name());
         fileConfig.setInlineComments(prefix + "worldType", List.of("One of: NORMAL, FLAT, AMPLIFIED, LARGE_BIOMES"));
         fileConfig.set(prefix + "environment", config.environment.name());

@@ -46,7 +46,8 @@ public class LoadCommand {
                         .append(Component.text("'...", NamedTextColor.GRAY))
         );
 
-        Polar.loadWorldFromFile(worldName).thenAccept(successful -> {
+        Polar.loadWorldFromFile(worldName).thenAccept(world -> {
+            boolean successful = world != null;
             if (successful) {
                 ctx.getSource().getSender().sendMessage(
                         Component.text()
