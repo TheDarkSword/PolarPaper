@@ -1,7 +1,7 @@
 package live.minehub.polarpaper;
 
 import live.minehub.polarpaper.util.ExceptionUtil;
-import net.minecraft.world.Difficulty;
+import org.bukkit.Difficulty;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.WorldType;
