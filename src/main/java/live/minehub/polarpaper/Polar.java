@@ -33,7 +33,6 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.BitStorage;
 import net.minecraft.util.GsonHelper;
 import net.minecraft.util.datafix.DataFixers;
-import net.minecraft.world.Difficulty;
 import net.minecraft.world.level.*;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.biome.BiomeManager;
@@ -51,10 +50,7 @@ import net.minecraft.world.level.storage.LevelDataAndDimensions;
 import net.minecraft.world.level.storage.LevelStorageSource;
 import net.minecraft.world.level.storage.PrimaryLevelData;
 import net.minecraft.world.level.validation.ContentValidationException;
-import org.bukkit.Bukkit;
-import org.bukkit.GameRule;
-import org.bukkit.World;
-import org.bukkit.WorldCreator;
+import org.bukkit.*;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.craftbukkit.CraftWorld;
@@ -514,11 +510,21 @@ public class Polar {
             WorldOptions worldOptions = new WorldOptions(creator.seed(), creator.generateStructures(), creator.bonusChest());
             WorldDimensions worldDimensions;
 
+            net.minecraft.world.Difficulty minecraftDifficulty;
+
+            // Can be used the id but method byId is deprecated
+            try {
+                minecraftDifficulty = net.minecraft.world.Difficulty.valueOf(difficulty.name());
+            } catch (EnumConstantNotPresentException e) { // This error should never happen
+                PolarPaper.logger().warning("Difficulty " + difficulty.name() + " not found, defaulting to NORMAL");
+                minecraftDifficulty = net.minecraft.world.Difficulty.NORMAL;
+            }
+
             DedicatedServerProperties.WorldDimensionData properties = new DedicatedServerProperties.WorldDimensionData(GsonHelper.parse((creator.generatorSettings().isEmpty()) ? "{}" : creator.generatorSettings()), creator.type().name().toLowerCase(Locale.ROOT));
             levelSettings = new LevelSettings(
                     name,
                     GameType.byId(craftServer.getDefaultGameMode().getValue()),
-                    hardcore, difficulty,
+                    hardcore, minecraftDifficulty,
                     false,
                     new GameRules(context.dataConfiguration().enabledFeatures()),
                     context.dataConfiguration()
