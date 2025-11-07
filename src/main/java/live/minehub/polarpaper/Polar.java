@@ -515,7 +515,7 @@ public class Polar {
             // Can be used the id but method byId is deprecated
             try {
                 minecraftDifficulty = net.minecraft.world.Difficulty.valueOf(difficulty.name());
-            } catch (EnumConstantNotPresentException e) { // This error should never happen
+            } catch (IllegalArgumentException e) { // This error should never happen
                 PolarPaper.logger().warning("Difficulty " + difficulty.name() + " not found, defaulting to NORMAL");
                 minecraftDifficulty = net.minecraft.world.Difficulty.NORMAL;
             }
