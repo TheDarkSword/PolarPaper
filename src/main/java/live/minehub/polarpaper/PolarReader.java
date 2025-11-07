@@ -17,7 +17,6 @@ import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -34,12 +33,12 @@ public class PolarReader {
     }
 
     public static @NotNull PolarWorld read(byte @NotNull [] data, @NotNull PolarDataConverter dataConverter) {
-        ByteBuffer bb = ByteBuffer.wrap(data);
+        ByteBuf bb = Unpooled.wrappedBuffer(data);
 
-        int magic = bb.getInt();
+        int magic = bb.readInt();
         assertThat(magic == PolarWorld.MAGIC_NUMBER, "Invalid magic number");
 
-        short version = bb.getShort();
+        short version = bb.readShort();
         validateVersion(version);
 
         int dataVersion = version >= PolarWorld.VERSION_DATA_CONVERTER
@@ -49,7 +48,7 @@ public class PolarReader {
 //        PolarPaper.logger().info("Polar version: " + version + " (" + dataVersion + ")");
 
 
-        byte compressionByte = bb.get();
+        byte compressionByte = bb.readByte();
         PolarWorld.CompressionType compression = PolarWorld.CompressionType.fromId(compressionByte);
         assertThat(compression != null, "Invalid compression type");
 
@@ -263,17 +262,16 @@ public class PolarReader {
                 invalidVersionError);
     }
 
-    private static @NotNull ByteBuf decompressBuffer(@NotNull ByteBuffer buffer, @NotNull PolarWorld.CompressionType compression, int compressedLength) {
+    private static @NotNull ByteBuf decompressBuffer(@NotNull ByteBuf buffer, @NotNull PolarWorld.CompressionType compression, int compressedLength) {
         return switch (compression) {
             case NONE -> Unpooled.wrappedBuffer(buffer);
             case ZSTD -> {
-
-                int limit = buffer.limit();
-                int length = limit - buffer.position();
+                int limit = buffer.capacity();
+                int length = limit - buffer.readerIndex();
                 assertThat(length >= 0, "Invalid remaining: " + length);
 
                 byte[] bytes = new byte[length];
-                buffer.get(bytes);
+                buffer.readBytes(bytes);
 
                 var decompressed = Zstd.decompress(bytes, compressedLength);
                 yield Unpooled.wrappedBuffer(decompressed);
