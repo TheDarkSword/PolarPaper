@@ -5,6 +5,7 @@ import live.minehub.polarpaper.util.PaletteUtil;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.util.SimpleBitStorage;
+import net.minecraft.util.ZeroBitStorage;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
@@ -109,13 +110,26 @@ public class PolarGenerator extends ChunkGenerator {
 
         var bitsPerEntry = (int) Math.ceil(Math.log(rawBlockPalette.length) / Math.log(2));
 
-        if (blockData == null) return;
+        if (blockData == null) {
+            if (materialPalette.length == 1) {
+                BlockState first = materialPalette[0];
+                if (first.isAir()) return;
+            }
+        }
 
-        states.data = new PalettedContainer.Data<>(
-                PaletteUtil.getConfigurationForBitCount(bitsPerEntry),
-                new SimpleBitStorage(Math.max(4, bitsPerEntry), blockData.length, blockData),
-                PaletteUtil.createPalette(bitsPerEntry, Arrays.asList(materialPalette))
-        );
+        if (blockData == null || bitsPerEntry == 0) {
+            states.data = new PalettedContainer.Data<>(
+                    PaletteUtil.getConfigurationForBitCount(0),
+                    new ZeroBitStorage(4096),
+                    PaletteUtil.createPalette(0, Arrays.asList(materialPalette))
+            );
+        } else {
+            states.data = new PalettedContainer.Data<>(
+                    PaletteUtil.getConfigurationForBitCount(bitsPerEntry),
+                    new SimpleBitStorage(Math.max(4, bitsPerEntry), blockData.length, blockData),
+                    PaletteUtil.createPalette(bitsPerEntry, Arrays.asList(materialPalette))
+            );
+        }
 
         chunkAccessSection.recalcBlockCounts();
     }
