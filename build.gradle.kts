@@ -37,6 +37,9 @@ java {
     toolchain {
         languageVersion.set(JavaLanguageVersion.of(21)) // Minestom has a minimum Java version of 21
     }
+
+    // Generate sources JAR
+    withSourcesJar()
 }
 
 publishing {
@@ -59,6 +62,7 @@ publishing {
     publications {
         create<MavenPublication>("shadow") {
             from(components["java"])
+            artifact(tasks.named("sourcesJar"))
         }
     }
 }
