@@ -91,8 +91,8 @@ public class Polar {
      * @param worldName The name for the polar world
      */
     @SuppressWarnings("unused")
-    public static void loadWorld(@NotNull PolarWorld world, @NotNull String worldName) {
-        loadWorld(world, worldName, PolarWorldAccess.POLAR_PAPER_FEATURES);
+    public static CompletableFuture<@Nullable World> loadWorld(@NotNull PolarWorld world, @NotNull String worldName) {
+        return loadWorld(world, worldName, PolarWorldAccess.POLAR_PAPER_FEATURES);
     }
 
     /**
@@ -102,8 +102,8 @@ public class Polar {
      * @param worldName The name for the polar world
      * @param config Custom config for the polar world
      */
-    public static void loadWorld(@NotNull PolarWorld world, @NotNull String worldName, @NotNull Config config) {
-        createWorld(world, worldName, config, PolarWorldAccess.POLAR_PAPER_FEATURES);
+    public static CompletableFuture<@Nullable World> loadWorld(@NotNull PolarWorld world, @NotNull String worldName, @NotNull Config config) {
+        return createWorld(world, worldName, config, PolarWorldAccess.POLAR_PAPER_FEATURES);
     }
 
     /**
@@ -113,10 +113,10 @@ public class Polar {
      * @param worldName The name for the polar world
      * @param worldAccess Describes how userdata should be handled (default PolarWorldAccess.POLAR_PAPER_FEATURES)
      */
-    public static void loadWorld(@NotNull PolarWorld world, @NotNull String worldName, @NotNull PolarWorldAccess worldAccess) {
+    public static CompletableFuture<@Nullable World> loadWorld(@NotNull PolarWorld world, @NotNull String worldName, @NotNull PolarWorldAccess worldAccess) {
         FileConfiguration fileConfig = PolarPaper.getPlugin().getConfig();
         Config config = Config.readFromConfig(fileConfig, worldName); // If world not in config, use defaults
-        createWorld(world, worldName, config, worldAccess);
+        return createWorld(world, worldName, config, worldAccess);
     }
 
     /**
