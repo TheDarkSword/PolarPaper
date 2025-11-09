@@ -7,7 +7,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufInputStream;
 import io.netty.buffer.Unpooled;
 import live.minehub.polarpaper.PolarSection.LightContent;
-import live.minehub.polarpaper.util.EntityUtil;
+import live.minehub.polarpaper.userdata.EntityUtil;
 import live.minehub.polarpaper.util.PaletteUtil;
 import net.kyori.adventure.key.Key;
 import net.minecraft.nbt.CompoundTag;

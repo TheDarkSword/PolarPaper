@@ -38,7 +38,7 @@ public class GotoCommand {
 
         PolarWorld polarWorld = PolarWorld.fromWorld(bukkitWorld);
         if (polarWorld != null) {
-            Config config = Config.readFromConfig(PolarPaper.getPlugin().getConfig(), bukkitWorld.getName());
+            Config config = Config.readFromConfig(PolarPaper.getPlugin().getConfig(), bukkitWorld);
             spawnPos = config.spawn();
         } else {
             spawnPos = bukkitWorld.getSpawnLocation();

@@ -21,3 +21,8 @@ default:
     - blockPhysics: true
     - blockGravity: true
     - liquidPhysics: true
+worlds:
+  #worldOne:
+    #...
+  #worldTwo:
+    #...

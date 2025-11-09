@@ -1,10 +1,11 @@
-package live.minehub.polarpaper.util;
+package live.minehub.polarpaper.userdata;
 
 import ca.spottedleaf.moonrise.common.PlatformHooks;
 import com.google.common.io.ByteArrayDataOutput;
 import com.mojang.logging.LogUtils;
 import live.minehub.polarpaper.PolarChunk;
 import live.minehub.polarpaper.PolarPaper;
+import live.minehub.polarpaper.util.ExceptionUtil;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtAccounter;
 import net.minecraft.nbt.NbtIo;

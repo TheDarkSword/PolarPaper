@@ -257,9 +257,14 @@ public class Polar {
         world.setGameRule((GameRule<T>) rule, (T)value);
     }
 
+    /**
+     * Updates the world config
+     * Should only be called synchronously
+     */
     public static Config updateConfig(World world, String worldName) {
+        PolarPaper.getPlugin().reloadConfig();
         FileConfiguration fileConfig = PolarPaper.getPlugin().getConfig();
-        Config defaultConfig = Config.getDefaultConfig(fileConfig, world);
+        Config defaultConfig = Config.getWorldDefaultConfig(fileConfig, world);
         Config config = Config.readFromConfig(fileConfig, worldName, defaultConfig); // If world not in config, use defaults
 
         // Update gamerules
@@ -293,10 +298,10 @@ public class Polar {
      * @param polarWorld The polar world
      * @param source The source to save the world using
      * @param polarWorldAccess Describes how userdata should be handled (default PolarWorldAccess.POLAR_PAPER_FEATURES)
-     * @param chunkSelector Used to filter which chunks should save
+     * @param blockSelector Used to filter which blocks should be saved (essentially a crop)
      */
-    public static void saveWorld(World world, PolarWorld polarWorld, PolarSource source, PolarWorldAccess polarWorldAccess, ChunkSelector chunkSelector) {
-        saveWorld(world, polarWorld, polarWorldAccess, source, chunkSelector);
+    public static void saveWorld(World world, PolarWorld polarWorld, PolarSource source, PolarWorldAccess polarWorldAccess, BlockSelector blockSelector) {
+        saveWorld(world, polarWorld, polarWorldAccess, source, blockSelector);
     }
 
     /**
@@ -311,8 +316,10 @@ public class Polar {
         if (polarWorld == null) return;
         PolarGenerator generator = PolarGenerator.fromWorld(world);
         if (generator == null) return;
-        updateConfig(world, world.getName());
-        saveWorld(world, polarWorld, generator.getWorldAccess(), polarSource, ChunkSelector.all());
+        Bukkit.getScheduler().runTask(PolarPaper.getPlugin(), () -> {
+            updateConfig(world, world.getName()); // config should only be updated synchronously
+        });
+        saveWorld(world, polarWorld, generator.getWorldAccess(), polarSource, BlockSelector.ALL);
     }
 
     /**
@@ -323,10 +330,10 @@ public class Polar {
      * @param polarWorld The polar world
      * @param polarWorldAccess Describes how userdata should be handled (default PolarWorldAccess.POLAR_PAPER_FEATURES)
      * @param polarSource The source to use to save the polar world (e.g. FilePolarSource)
-     * @param chunkSelector Used to filter which chunks should save
+     * @param blockSelector Used to filter which blocks should be updated (essentially a crop)
      */
-    public static void saveWorld(World world, PolarWorld polarWorld, PolarWorldAccess polarWorldAccess, PolarSource polarSource, ChunkSelector chunkSelector) {
-        updateWorld(world, polarWorld, polarWorldAccess, chunkSelector);
+    public static void saveWorld(World world, PolarWorld polarWorld, PolarWorldAccess polarWorldAccess, PolarSource polarSource, BlockSelector blockSelector) {
+        updateWorld(world, polarWorld, polarWorldAccess, blockSelector);
         byte[] worldBytes = PolarWriter.write(polarWorld);
         polarSource.saveBytes(worldBytes);
     }
@@ -340,7 +347,7 @@ public class Polar {
     public static void updateWorld(World world) {
         PolarWorld polarWorld = PolarWorld.fromWorld(world);
         if (polarWorld == null) return;
-        updateWorld(world, polarWorld, PolarWorldAccess.POLAR_PAPER_FEATURES, ChunkSelector.all());
+        updateWorld(world, polarWorld, PolarWorldAccess.POLAR_PAPER_FEATURES, BlockSelector.ALL);
     }
 
     /**
@@ -349,15 +356,21 @@ public class Polar {
      * @param world The bukkit world to retrieve chunks from
      * @param polarWorld The polar world
      * @param polarWorldAccess Describes how userdata should be handled (default PolarWorldAccess.POLAR_PAPER_FEATURES)
-     * @param chunkSelector Used to filter which chunks should update
+     * @param blockSelector Used to filter which blocks should be updated (essentially a crop)
      * @see Polar#saveWorld(World, PolarSource)
      */
-    public static void updateWorld(World world, PolarWorld polarWorld, PolarWorldAccess polarWorldAccess, ChunkSelector chunkSelector) {
+    public static void updateWorld(World world, PolarWorld polarWorld, PolarWorldAccess polarWorldAccess, BlockSelector blockSelector) {
         // TODO: consider offsets
         // TODO: chunk holders should probably be eventually released/removed (config option?)
 
         ChunkSystemServerLevel chunkSystemServerLevel = ((CraftWorld) world).getHandle();
         ChunkHolderManager chunkHolderManager = chunkSystemServerLevel.moonrise$getChunkTaskScheduler().chunkHolderManager;
+
+        for (PolarChunk chunk : new ArrayList<>(polarWorld.chunks())) {
+            if (!blockSelector.testChunk(chunk.x(), chunk.z())) {
+                polarWorld.removeChunkAt(chunk.x(), chunk.z());
+            }
+        }
 
         for (NewChunkHolder chunkHolder : chunkHolderManager.getChunkHolders()) {
             if (chunkHolder == null) continue;
@@ -367,10 +380,10 @@ public class Polar {
             int chunkX = chunkHolder.chunkX;
             int chunkZ = chunkHolder.chunkZ;
 
-            if (!chunkSelector.test(chunkX, chunkZ)) continue;
+            if (!blockSelector.testChunk(chunkX, chunkZ)) continue;
 
             ChunkEntitySlices entityChunk = chunkHolder.getEntityChunk();
-            boolean unsaved = currentChunk.isUnsaved();
+            boolean unsaved = blockSelector == BlockSelector.ALL || currentChunk.isUnsaved(); // if selector is not ALL blocks, we need to update
 
             boolean onlyPlayers = true;
             if (entityChunk != null) {
@@ -425,7 +438,7 @@ public class Polar {
 
             int minHeight = currentChunk.getMinY();
             int maxHeight = currentChunk.getMaxY();
-            PolarChunk polarChunk = createPolarChunk(polarWorldAccess, currentChunk, entityChunk, chunkX, chunkZ, minHeight, maxHeight);
+            PolarChunk polarChunk = createPolarChunk(polarWorldAccess, currentChunk, entityChunk, chunkX, chunkZ, minHeight, maxHeight, blockSelector);
             polarWorld.updateChunkAt(chunkX, chunkZ, polarChunk);
 
             currentChunk.tryMarkSaved();
@@ -616,22 +629,21 @@ public class Polar {
         return serverLevel.getWorld();
     }
 
-    public static PolarChunk createPolarChunk(PolarWorldAccess worldAccess, ChunkAccess chunkAccess, ChunkEntitySlices entityChunk, int newChunkX, int newChunkZ, int minHeight, int maxHeight) {
+    public static PolarChunk createPolarChunk(PolarWorldAccess worldAccess, ChunkAccess chunkAccess, ChunkEntitySlices entityChunk, int newChunkX, int newChunkZ, int minHeight, int maxHeight, BlockSelector blockSelector) {
         List<PolarChunk.BlockEntity> polarBlockEntities = new ArrayList<>();
 
         Registry<net.minecraft.world.level.biome.Biome> biomeRegistry = MinecraftServer.getServer().registryAccess().lookupOrThrow(Registries.BIOME);
 
         int worldHeight = (maxHeight + 1) - minHeight;
         int sectionCount = worldHeight / 16;
+        int minSection = chunkAccess.getMinSectionY();
 
         PolarSection[] sections = new PolarSection[sectionCount];
         for (int i = 0; i < sectionCount; i++) {
-            int sectionY = minHeight + i * 16;
-
             LevelChunkSection chunkAccessSection = chunkAccess.getSection(i);
 
             int[] blockData = null;
-            int[] biomeData = null;
+            int[] biomeData;
 
             List<String> blockPaletteStrings = new ArrayList<>();
             List<String> biomePaletteStrings = new ArrayList<>();
@@ -645,13 +657,24 @@ public class Polar {
                             .replace("Block{", "").replace("}", "")); // e.g. Block{minecraft:oak_fence}[...] to minecraft:oak_fence[...]
                 }
 
+                int airIndex = blockPaletteStrings.indexOf("minecraft:air");
+                if (airIndex == -1) {
+                    blockPaletteStrings.add("minecraft:air");
+                    airIndex = blockPaletteStrings.size() - 1;
+                }
+
                 BitStorage blockBitStorage = blockPaletteData.storage();
                 int blockPaletteSize = blockBitStorage.getSize();
                 blockData = new int[blockPaletteSize];
 
                 for(int index = 0; index < blockPaletteSize; ++index) {
-                    int paletteIdx = blockBitStorage.get(index);
-                    blockData[index] = paletteIdx;
+                    boolean included = blockSelector.test(index, newChunkX, newChunkZ, minSection + i);
+                    if (included) {
+                        int paletteIdx = blockBitStorage.get(index);
+                        blockData[index] = paletteIdx;
+                    } else {
+                        blockData[index] = airIndex;
+                    }
                 }
 
                 // TODO: trim the palette (needed?)
@@ -678,7 +701,7 @@ public class Polar {
             biomeData = new int[biomePaletteSize];
 
             for(int index = 0; index < biomePaletteSize; ++index) {
-                int paletteIdx = biomeBitStorage.get(index);
+                int paletteIdx = biomeBitStorage.get(index);// TODO: use blockselector here
                 biomeData[index] = paletteIdx;
             }
 
@@ -697,6 +720,7 @@ public class Polar {
             BlockEntity blockEntity = entry.getValue();
 
             if (blockPos == null || blockEntity == null) continue;
+            if (!blockSelector.test(blockPos.getX(), blockPos.getY(), blockPos.getZ())) continue;
 
             CompoundTag compoundTag = blockEntity.saveWithFullMetadata(registryAccess);
 

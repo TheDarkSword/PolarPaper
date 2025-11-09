@@ -26,7 +26,7 @@ public class ReloadConfigCommand {
             PolarGenerator generator = PolarGenerator.fromWorld(bukkitWorld);
             if (generator == null) continue;
 
-            Config config = Config.readFromConfig(PolarPaper.getPlugin().getConfig(), bukkitWorld.getName());
+            Config config = Config.readFromConfig(PolarPaper.getPlugin().getConfig(), bukkitWorld);
 
             generator.setConfig(config);
 

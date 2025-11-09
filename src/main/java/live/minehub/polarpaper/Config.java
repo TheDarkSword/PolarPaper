@@ -41,6 +41,11 @@ public record Config(
         put("blockPhysics", true); // custom gamerule
         put("blockGravity", true); // custom gamerule
         put("liquidPhysics", true); // custom gamerule
+
+        // paper default gamerules, put here to remove clutter when saving other worlds
+        put("maxCommandChainLength", 65536);
+        put("commandModificationBlockLimit", 32768);
+        put("maxCommandForkCount", 65536);
     }};
 
     public static final Config BLANK_DEFAULT = new Config(
@@ -59,10 +64,10 @@ public record Config(
     );
 
     public static Config getDefaultConfig(FileConfiguration config) {
-        return readPrefixFromConfig(config, "default.", BLANK_DEFAULT);
+        return readPrefix(config, "default.", BLANK_DEFAULT);
     }
 
-    public static @NotNull Config getDefaultConfig(FileConfiguration config, World world) {
+    public static @NotNull Config getWorldDefaultConfig(FileConfiguration config, World world) {
         Config defaultConfig = getDefaultConfig(config);
 
         // Add gamerules from world into config
@@ -104,16 +109,19 @@ public record Config(
         return new Config(this.autoSaveIntervalTicks, this.time, this.saveOnStop, this.loadOnStartup, location, this.difficulty, this.allowMonsters, this.allowAnimals, this.async, this.worldType, this.environment, this.gamerules);
     }
 
+    public static @NotNull Config readFromConfig(FileConfiguration config, World world) {
+        return readFromConfig(config, world.getName(), getWorldDefaultConfig(config, world));
+    }
 
     public static @NotNull Config readFromConfig(FileConfiguration config, String worldName) {
         return readFromConfig(config, worldName, getDefaultConfig(config));
     }
 
     public static @NotNull Config readFromConfig(FileConfiguration config, String worldName, Config defaultConfig) {
-        return readPrefixFromConfig(config, String.format("worlds.%s.", worldName), defaultConfig);
+        return readPrefix(config, String.format("worlds.%s.", worldName), defaultConfig);
     }
 
-    private static @NotNull Config readPrefixFromConfig(FileConfiguration config, String prefix, Config defaultConfig) {
+    private static @NotNull Config readPrefix(FileConfiguration config, String prefix, Config defaultConfig) {
         try {
             int autoSaveIntervalTicks = config.getInt(prefix + "autosaveIntervalTicks", defaultConfig.autoSaveIntervalTicks);
             long time = config.getLong(prefix + "time", defaultConfig.time);
@@ -156,29 +164,38 @@ public record Config(
         }
     }
 
-    public static void writeDefaultToConfig(FileConfiguration fileConfig, String worldName) {
-        writeToConfig(fileConfig, worldName, getDefaultConfig(fileConfig));
+    private static void writeProperty(FileConfiguration fileConfig, String path, Object value, Object def) {
+        if (value.equals(def)) fileConfig.set(path, null);
+        else fileConfig.set(path, value);
     }
 
     public static void writeToConfig(FileConfiguration fileConfig, String worldName, Config config) {
+        Config defaultConfig = getDefaultConfig(fileConfig);
+
         String prefix = String.format("worlds.%s.", worldName);
 
-        fileConfig.set(prefix + "autosaveIntervalTicks", config.autoSaveIntervalTicks);
-        fileConfig.set(prefix + "time", config.time);
+        // only save if the config differs from the default
+        writeProperty(fileConfig, prefix + "time", config.time, defaultConfig.time);
+        writeProperty(fileConfig, prefix + "autosaveIntervalTicks", config.autoSaveIntervalTicks, defaultConfig.autoSaveIntervalTicks);
         fileConfig.setInlineComments(prefix + "autosaveIntervalTicks", List.of("-1 to disable"));
-        fileConfig.set(prefix + "saveOnStop", config.saveOnStop);
-        fileConfig.set(prefix + "loadOnStartup", config.loadOnStartup);
-        fileConfig.set(prefix + "spawn", locationToString(config.spawn));
-        fileConfig.set(prefix + "difficulty", config.difficulty.name());
-        fileConfig.set(prefix + "allowMonsters", config.allowMonsters);
-        fileConfig.set(prefix + "allowAnimals", config.allowAnimals);
-        fileConfig.set(prefix + "async", config.async);
+        writeProperty(fileConfig, prefix + "saveOnStop", config.saveOnStop, defaultConfig.saveOnStop);
+        writeProperty(fileConfig, prefix + "loadOnStartup", config.loadOnStartup, defaultConfig.loadOnStartup);
+        writeProperty(fileConfig, prefix + "spawn", locationToString(config.spawn), locationToString(defaultConfig.spawn));
+        writeProperty(fileConfig, prefix + "difficulty", config.difficulty.name(), defaultConfig.difficulty.name());
+        writeProperty(fileConfig, prefix + "allowMonsters", config.allowMonsters, defaultConfig.allowMonsters);
+        writeProperty(fileConfig, prefix + "allowAnimals", config.allowAnimals, defaultConfig.allowAnimals);
+        writeProperty(fileConfig, prefix + "async", config.async, defaultConfig.async);
         fileConfig.setInlineComments(prefix + "async", List.of("Very experimental"));
-        fileConfig.set(prefix + "worldType", config.worldType.name());
+        writeProperty(fileConfig, prefix + "worldType", config.worldType.name(), defaultConfig.worldType.name());
         fileConfig.setInlineComments(prefix + "worldType", List.of("One of: NORMAL, FLAT, AMPLIFIED, LARGE_BIOMES"));
-        fileConfig.set(prefix + "environment", config.environment.name());
+        writeProperty(fileConfig, prefix + "environment", config.environment.name(), defaultConfig.environment.name());
         fileConfig.setInlineComments(prefix + "environment", List.of("One of: NORMAL, NETHER, THE_END, CUSTOM"));
-        fileConfig.set(prefix + "gamerules", config.gamerulesList());
+
+        var gamerulesToSave = config.gamerulesList();
+        gamerulesToSave.removeAll(defaultConfig.gamerulesList());
+        if (gamerulesToSave.isEmpty()) gamerulesToSave = null;
+        fileConfig.set(prefix + "gamerules", gamerulesToSave);
+
         fileConfig.setInlineComments(prefix + "gamerules", List.of("Custom rules: liquidPhysics, blockPhysics, blockGravity, coralDeath"));
 
         Path pluginFolder = Path.of(PolarPaper.getPlugin().getDataFolder().getAbsolutePath());

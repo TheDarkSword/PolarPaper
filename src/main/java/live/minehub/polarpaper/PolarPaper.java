@@ -4,7 +4,6 @@ import io.papermc.paper.command.brigadier.Commands;
 import io.papermc.paper.plugin.lifecycle.event.LifecycleEventManager;
 import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
 import live.minehub.polarpaper.commands.PolarCommand;
-import live.minehub.polarpaper.source.FilePolarSource;
 import live.minehub.polarpaper.util.ExceptionUtil;
 import org.bukkit.World;
 import org.bukkit.plugin.Plugin;
@@ -47,11 +46,6 @@ public final class PolarPaper extends JavaPlugin {
 
                 String worldName = path.getFileName().toString().split("\\.polar")[0];
 
-                // add to config if not already there
-                if (!Polar.isInConfig(worldName)) {
-                    Config.writeDefaultToConfig(getConfig(), worldName);
-                }
-
                 Config config = Config.readFromConfig(getConfig(), worldName);
 
                 if (!config.loadOnStartup()) return;
@@ -87,16 +81,14 @@ public final class PolarPaper extends JavaPlugin {
 
             if (!generator.getConfig().saveOnStop()) {
                 PolarPaper.logger().info(String.format("Not saving '%s' as it has save on stop disabled", world.getName()));
-                return;
+                continue;
             }
 
             getLogger().info("Saving '" + world.getName() + "'...");
 
             long before = System.nanoTime();
-            Path worldsFolder = pluginFolder.resolve("worlds");
-            Path path = worldsFolder.resolve(world.getName() + ".polar");
             Polar.updateConfig(world, world.getName());
-            Polar.saveWorld(world, polarWorld, PolarWorldAccess.POLAR_PAPER_FEATURES, new FilePolarSource(path), ChunkSelector.all());
+            Polar.saveWorldToFile(world);
             int ms = (int) ((System.nanoTime() - before) / 1_000_000);
             PolarPaper.logger().info(String.format("Saved '%s' in %sms", world.getName(), ms));
         }

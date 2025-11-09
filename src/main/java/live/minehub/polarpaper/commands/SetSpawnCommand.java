@@ -38,7 +38,7 @@ public class SetSpawnCommand {
         }
 
         FileConfiguration fileConfig = PolarPaper.getPlugin().getConfig();
-        Config config = Config.readFromConfig(fileConfig, bukkitWorld.getName(), Config.getDefaultConfig(fileConfig, bukkitWorld));
+        Config config = Config.readFromConfig(fileConfig, bukkitWorld);
 
         Location spawnPos = player.getLocation().clone();
         if (rounded) {

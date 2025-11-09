@@ -61,7 +61,7 @@ public class InfoCommand {
             return Command.SINGLE_SUCCESS;
         }
 
-        Config config = Config.readFromConfig(PolarPaper.getPlugin().getConfig(), bukkitWorld.getName());
+        Config config = Config.readFromConfig(PolarPaper.getPlugin().getConfig(), bukkitWorld);
 
         List<NewChunkHolder> chunkHolders = ((ChunkSystemServerLevel) ((CraftWorld) bukkitWorld).getHandle()).moonrise$getChunkTaskScheduler().chunkHolderManager.getChunkHolders();
 

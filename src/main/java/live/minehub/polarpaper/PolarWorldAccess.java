@@ -1,8 +1,8 @@
 package live.minehub.polarpaper;
 
 import com.google.common.io.ByteArrayDataOutput;
+import live.minehub.polarpaper.userdata.EntityUtil;
 import live.minehub.polarpaper.util.ByteArrayUtil;
-import live.minehub.polarpaper.util.EntityUtil;
 import live.minehub.polarpaper.util.ExceptionUtil;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -45,6 +45,7 @@ public interface PolarWorldAccess {
     PolarWorldAccess POLAR_PAPER_FEATURES = new PolarWorldAccess() {
         // Current version of the features chunk data
         private static final byte CURRENT_FEATURES_VERSION = 2;
+        private static final byte ENTITIES_VERSION = 1;
         private static final byte PERSISTENT_DATA_CONTAINER_VERSION = 2;
 
         @Override

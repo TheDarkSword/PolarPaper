@@ -2,6 +2,20 @@ package live.minehub.polarpaper.util;
 
 public class CoordConversion {
 
+    public static final int SECTION_BOUND = 15;
+
+    public static int sectionBlockIndexGetY(int index) {
+        return (index >> 8) & SECTION_BOUND;
+    }
+
+    public static int sectionBlockIndexGetX(int index) {
+        return index & SECTION_BOUND;
+    }
+
+    public static int sectionBlockIndexGetZ(int index) {
+        return (index >> 4) & SECTION_BOUND;
+    }
+
     public static int globalToChunk(int xz) {
         // Assume chunk/section size being 16 (4 bits)
         return xz >> 4;

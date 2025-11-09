@@ -89,7 +89,7 @@ public class ConvertCommand {
         Path newWorldPath = worldsFolder.resolve(newWorldName + ".polar");
 
         Bukkit.getAsyncScheduler().runNow(PolarPaper.getPlugin(), (task) -> {
-            Polar.saveWorld(bukkitWorld, newPolarWorld, PolarWorldAccess.POLAR_PAPER_FEATURES, new FilePolarSource(newWorldPath), ChunkSelector.square(offsetX, offsetZ, chunkRadius));
+            Polar.saveWorld(bukkitWorld, newPolarWorld, PolarWorldAccess.POLAR_PAPER_FEATURES, new FilePolarSource(newWorldPath), BlockSelector.square(offsetX, offsetZ, chunkRadius));
             int ms = (int) ((System.nanoTime() - before) / 1_000_000);
             ctx.getSource().getSender().sendMessage(
                     Component.text()

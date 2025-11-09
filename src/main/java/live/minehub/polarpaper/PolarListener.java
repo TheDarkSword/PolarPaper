@@ -1,15 +1,26 @@
 package live.minehub.polarpaper;
 
+import io.papermc.paper.persistence.PersistentDataContainerView;
+import live.minehub.polarpaper.commands.SaveCommand;
+import live.minehub.polarpaper.commands.WandCommand;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import net.minecraft.world.level.chunk.status.ChunkStatus;
 import org.bukkit.craftbukkit.CraftChunk;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.block.BlockFadeEvent;
-import org.bukkit.event.block.BlockFromToEvent;
-import org.bukkit.event.block.BlockPhysicsEvent;
+import org.bukkit.event.block.*;
 import org.bukkit.event.entity.EntityChangeBlockEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.world.ChunkPopulateEvent;
 import org.bukkit.generator.ChunkGenerator;
+import org.bukkit.inventory.EquipmentSlot;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.persistence.PersistentDataContainer;
+import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.util.Vector;
 
 @SuppressWarnings("unused")
 public class PolarListener implements Listener {
@@ -79,5 +90,49 @@ public class PolarListener implements Listener {
     }
 
 
+    // WAND
+    @EventHandler
+    public void onJoin(PlayerJoinEvent event) {
+        // clear wand properties
+        PersistentDataContainer data = event.getPlayer().getPersistentDataContainer();
+        data.remove(SaveCommand.POS_1_KEY);
+        data.remove(SaveCommand.POS_2_KEY);
+    }
+    @EventHandler
+    public void onBlockBreak(BlockBreakEvent event) {
+        Player player = event.getPlayer();
+        ItemStack item = player.getInventory().getItemInMainHand();
+        PersistentDataContainerView itemData = item.getPersistentDataContainer();
+        if (!itemData.has(WandCommand.ITEM_STACK_KEY)) return;
+
+        PersistentDataContainer data = player.getPersistentDataContainer();
+
+        Vector blockPos = event.getBlock().getLocation().toVector();
+        int[] array = new int[] { blockPos.getBlockX(), blockPos.getBlockY(), blockPos.getBlockZ() };
+        data.set(SaveCommand.POS_1_KEY, PersistentDataType.INTEGER_ARRAY, array);
+
+        event.setCancelled(true);
+        String formattedPos = String.format("%s, %s, %s", blockPos.getBlockX(), blockPos.getBlockY(), blockPos.getBlockZ());
+        player.sendMessage(Component.text("Set first position to " + formattedPos, NamedTextColor.AQUA));
+    }
+    @EventHandler
+    public void onBlockBreak(PlayerInteractEvent event) {
+        if (event.getAction() != Action.RIGHT_CLICK_BLOCK || event.getClickedBlock() == null) return;
+        if (event.getHand() != EquipmentSlot.HAND) return;
+        Player player = event.getPlayer();
+        ItemStack item = player.getInventory().getItemInMainHand();
+        PersistentDataContainerView itemData = item.getPersistentDataContainer();
+        if (!itemData.has(WandCommand.ITEM_STACK_KEY)) return;
+
+        PersistentDataContainer data = player.getPersistentDataContainer();
+
+        Vector blockPos = event.getClickedBlock().getLocation().toVector();
+        int[] array = new int[] { blockPos.getBlockX(), blockPos.getBlockY(), blockPos.getBlockZ() };
+        data.set(SaveCommand.POS_2_KEY, PersistentDataType.INTEGER_ARRAY, array);
+
+        event.setCancelled(true);
+        String formattedPos = String.format("%s, %s, %s", blockPos.getBlockX(), blockPos.getBlockY(), blockPos.getBlockZ());
+        player.sendMessage(Component.text("Set second position to " + formattedPos, NamedTextColor.AQUA));
+    }
 
 }
