@@ -25,7 +25,7 @@ dependencies {
 
 tasks {
     assemble {
-//        dependsOn(reobfJar) TODO: reenable
+        dependsOn(reobfJar)
     }
 
     runServer {
