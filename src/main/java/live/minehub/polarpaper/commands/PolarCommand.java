@@ -179,6 +179,7 @@ public class PolarCommand {
                                     return Command.SINGLE_SUCCESS;
                                 })
                                 .then(Commands.argument("worldname", StringArgumentType.string())
+                                        .executes(PasteCommand::run)
                                         .then(Commands.argument("rotation", StringArgumentType.string())
                                                 .suggests((ctx, builder) -> {
                                                     for (Rotation rotation : Rotation.values()) {
@@ -186,7 +187,7 @@ public class PolarCommand {
                                                     }
                                                     return builder.buildFuture();
                                                 })
-                                                .executes(PasteCommand::run))))
+                                                .executes(PasteCommand::runWithRotation))))
                         .then(Commands.literal("wand")
                                 .requires(source -> source.getSender().hasPermission("polarpaper.wand"))
                                 .executes(WandCommand::run))

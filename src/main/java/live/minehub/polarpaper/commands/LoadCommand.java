@@ -4,6 +4,7 @@ import com.mojang.brigadier.Command;
 import com.mojang.brigadier.context.CommandContext;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 import live.minehub.polarpaper.Polar;
+import live.minehub.polarpaper.PolarPaper;
 import live.minehub.polarpaper.PolarWorld;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
@@ -12,6 +13,9 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
+
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 public class LoadCommand {
 
@@ -36,6 +40,15 @@ public class LoadCommand {
                                 .append(Component.text("' already loaded!", NamedTextColor.RED))
                 );
             }
+            return Command.SINGLE_SUCCESS;
+        }
+
+        Path pluginFolder = Path.of(PolarPaper.getPlugin().getDataFolder().getAbsolutePath());
+        Path worldsFolder = pluginFolder.resolve("worlds");
+        Path path = worldsFolder.resolve(worldName + ".polar");
+
+        if (!Files.exists(path)) {
+            ctx.getSource().getSender().sendMessage(Component.text("Couldn't find file '" + worldName + ".polar' in the worlds folder", NamedTextColor.RED));
             return Command.SINGLE_SUCCESS;
         }
 
@@ -69,7 +82,7 @@ public class LoadCommand {
                         Component.text()
                                 .append(Component.text("Failed to load world '", NamedTextColor.RED))
                                 .append(Component.text(worldName, NamedTextColor.RED))
-                                .append(Component.text("'. Does it exist?", NamedTextColor.RED))
+                                .append(Component.text("'", NamedTextColor.RED))
                 );
             }
         });
