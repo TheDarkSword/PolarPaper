@@ -3,6 +3,7 @@ package live.minehub.polarpaper.commands;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.context.CommandContext;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
+import live.minehub.polarpaper.schematic.Schematic;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -14,6 +15,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.util.Vector;
 
 public class WandCommand {
 
@@ -28,7 +30,51 @@ public class WandCommand {
         });
     }
 
-    protected static int run(CommandContext<CommandSourceStack> ctx) {
+    protected static int pos1(CommandContext<CommandSourceStack> ctx) {
+        CommandSender sender = ctx.getSource().getSender();
+        if (!(sender instanceof Player player)) {
+            ctx.getSource().getSender().sendMessage(
+                    Component.text()
+                            .append(Component.text("Usage: /polar pos1 (while in a world)", NamedTextColor.RED))
+            );
+            return Command.SINGLE_SUCCESS;
+        }
+
+        PersistentDataContainer data = player.getPersistentDataContainer();
+
+        Vector blockPos = player.getLocation().toVector();
+        int[] array = new int[] { blockPos.getBlockX(), blockPos.getBlockY(), blockPos.getBlockZ() };
+        data.set(Schematic.POS_1_KEY, PersistentDataType.INTEGER_ARRAY, array);
+
+        String formattedPos = String.format("%s, %s, %s", blockPos.getBlockX(), blockPos.getBlockY(), blockPos.getBlockZ());
+        player.sendMessage(Component.text("Set first corner position to " + formattedPos, NamedTextColor.AQUA));
+
+        return Command.SINGLE_SUCCESS;
+    }
+
+    protected static int pos2(CommandContext<CommandSourceStack> ctx) {
+        CommandSender sender = ctx.getSource().getSender();
+        if (!(sender instanceof Player player)) {
+            ctx.getSource().getSender().sendMessage(
+                    Component.text()
+                            .append(Component.text("Usage: /polar pos2 (while in a world)", NamedTextColor.RED))
+            );
+            return Command.SINGLE_SUCCESS;
+        }
+
+        PersistentDataContainer data = player.getPersistentDataContainer();
+
+        Vector blockPos = player.getLocation().toVector();
+        int[] array = new int[] { blockPos.getBlockX(), blockPos.getBlockY(), blockPos.getBlockZ() };
+        data.set(Schematic.POS_2_KEY, PersistentDataType.INTEGER_ARRAY, array);
+
+        String formattedPos = String.format("%s, %s, %s", blockPos.getBlockX(), blockPos.getBlockY(), blockPos.getBlockZ());
+        player.sendMessage(Component.text("Set second corner position to " + formattedPos, NamedTextColor.AQUA));
+
+        return Command.SINGLE_SUCCESS;
+    }
+
+    protected static int wand(CommandContext<CommandSourceStack> ctx) {
         CommandSender sender = ctx.getSource().getSender();
         if (!(sender instanceof Player player)) {
             ctx.getSource().getSender().sendMessage(

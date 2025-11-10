@@ -32,7 +32,7 @@ Polar provides a few custom gamerules that can be defined in the config:
 | liquidPhysics | Boolean | Allow lava/water to flow                    |
 | coralDeath    | Boolean | Allow coral to die when not nearby water    |
 
-## API
+# API
 Remember to add `polarpaper` to your depend list in plugin.yml if using as a plugin/compileOnly
 ```yml
 depend:
@@ -54,12 +54,7 @@ Load a polar world
 // Manually
 byte[] bytes = ...
 PolarWorld polarWorld = PolarReader.read(bytes);
-Polar.loadWorld(polarWorld, worldName);
-
-// Manually using BytesPolarSource
-byte[] bytes = ...
-PolarSource source = new BytesPolarSource(bytes);
-Polar.loadWorld(source, worldName);
+Polar.createWorld(polarWorld, worldName);
 
 // Using PolarSource
 Path savePath = Path.of("./epic/world.polar");
@@ -75,15 +70,9 @@ Save a polar world
 ```java
 // Manually
 World bukkitWorld = player.getWorld();
-Polar.updateWorld(bukkitWorld); // refresh chunks
 PolarWorld polarWorld = PolarWorld.fromWorld(world);
+polarWorld.updateChunks(bukkitWorld); // update chunks in the polar world
 byte[] bytes = PolarWriter.write(polarWorld);
-
-// Manually using BytesPolarSource
-World bukkitWorld = player.getWorld();
-PolarSource source = new BytesPolarSource();
-Polar.saveWorld(bukkitWorld, source);
-byte[] bytes = source.bytes();
 
 // Using PolarSource
 World bukkitWorld = player.getWorld();
@@ -101,6 +90,16 @@ Get the `PolarWorld` that a player is in
 ```java
 PolarWorld polarWorld = PolarWorld.fromWorld(player.getWorld());
 // (returns null if the world is not from PolarPaper)
+```
+
+Paste a polar world into a world (like a .schematic)
+```java
+Path worldPath = Path.of("./epic/world.polar");
+byte[] polarBytes = Files.readAllBytes(worldPath);
+PolarWorld polarWorld = PolarReader.read(polarBytes);
+Vector3i offset = new Vector3i(x, y, z);
+BlockModifier modifier = new BlockModifier.PosRot(offset, Rotation.CLOCKWISE_90);
+Schematic.paste(polarWorld, player.getWorld(), modifier, Schematic.IgnoreAir.EMPTY_SECTION);
 ```
 
 Register events

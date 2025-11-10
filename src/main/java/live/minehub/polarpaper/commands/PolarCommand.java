@@ -68,7 +68,7 @@ public class PolarCommand {
                                 .executes(ctx -> {
                                     ctx.getSource().getSender().sendMessage(
                                             Component.text()
-                                                    .append(Component.text("Usage: /polar save <worldname>\n", NamedTextColor.RED))
+                                                    .append(Component.text("Usage: /polar save <worldname>", NamedTextColor.RED))
                                     );
                                     return Command.SINGLE_SUCCESS;
                                 })
@@ -103,7 +103,7 @@ public class PolarCommand {
                                 .executes(ctx -> {
                                     ctx.getSource().getSender().sendMessage(
                                             Component.text()
-                                                    .append(Component.text("Usage: /polar load <worldname> [save]", NamedTextColor.RED))
+                                                    .append(Component.text("Usage: /polar unload <worldname> [save]", NamedTextColor.RED))
                                                     .append(Component.text("Setting save will override config", NamedTextColor.RED))
                                     );
                                     return Command.SINGLE_SUCCESS;
@@ -190,7 +190,27 @@ public class PolarCommand {
                                                 .executes(PasteCommand::runWithRotation))))
                         .then(Commands.literal("wand")
                                 .requires(source -> source.getSender().hasPermission("polarpaper.wand"))
-                                .executes(WandCommand::run))
+                                .executes(WandCommand::wand))
+                        .then(Commands.literal("pos1")
+                                .requires(source -> source.getSender().hasPermission("polarpaper.wand"))
+                                .executes(WandCommand::pos1))
+                        .then(Commands.literal("pos2")
+                                .requires(source -> source.getSender().hasPermission("polarpaper.wand"))
+                                .executes(WandCommand::pos2))
+                        .then(Commands.literal("crop")
+                                .requires(source -> source.getSender().hasPermission("polarpaper.crop"))
+                                .executes(CropCommand::run))
+                        .then(Commands.literal("createfromregion")
+                                .requires(source -> source.getSender().hasPermission("polarpaper.convert"))
+                                .executes(ctx -> {
+                                    ctx.getSource().getSender().sendMessage(
+                                            Component.text()
+                                                    .append(Component.text("Usage: /polar createfromregion <new worldname> (While in a world) to create a new polar world from the selected region", NamedTextColor.RED))
+                                    );
+                                    return Command.SINGLE_SUCCESS;
+                                })
+                                .then(Commands.argument("newworldname", StringArgumentType.string())
+                                    .executes(CreateFromRegionCommand::run)))
                         .build()
         );
     }

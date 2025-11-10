@@ -1,19 +1,13 @@
 package live.minehub.polarpaper;
 
 import live.minehub.polarpaper.util.ExceptionUtil;
-import org.bukkit.Difficulty;
-import org.bukkit.Location;
-import org.bukkit.World;
-import org.bukkit.WorldType;
+import org.bukkit.*;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public record Config(
         int autoSaveIntervalTicks,
@@ -63,6 +57,10 @@ public record Config(
             DEFAULT_GAMERULES
     );
 
+    public static boolean isInConfig(@NotNull String worldName) {
+        return PolarPaper.getPlugin().getConfig().isSet("worlds." + worldName);
+    }
+
     public static Config getDefaultConfig(FileConfiguration config) {
         return readPrefix(config, "default.", BLANK_DEFAULT);
     }
@@ -70,43 +68,31 @@ public record Config(
     public static @NotNull Config getWorldDefaultConfig(FileConfiguration config, World world) {
         Config defaultConfig = getDefaultConfig(config);
 
-        // Add gamerules from world into config
-        Map<String, Object> gameruleMap = new HashMap<>(Config.DEFAULT_GAMERULES);
+        Config.Builder configBuilder = defaultConfig.toBuilder()
+                .time(world.getTime())
+                .spawn(world.getSpawnLocation())
+                .difficulty(world.getDifficulty())
+                .allowMonsters(world.getAllowMonsters())
+                .allowAnimals(world.getAllowAnimals())
+                .environment(world.getEnvironment());
 
         for (String name : world.getGameRules()) {
-            org.bukkit.GameRule<?> gamerule = org.bukkit.GameRule.getByName(name);
+            GameRule<?> gamerule = GameRule.getByName(name);
             if (gamerule == null) continue;
 
             Object gameRuleValue = world.getGameRuleValue(gamerule);
             if (gameRuleValue == null) continue;
             Object gameRuleDefault = world.getGameRuleDefault(gamerule);
             if (gameRuleValue != gameRuleDefault) {
-                gameruleMap.put(name, gameRuleValue);
+                configBuilder.gamerule(name, gameRuleValue);
             }
         }
 
-        return new Config(
-                defaultConfig.autoSaveIntervalTicks,
-                world.getFullTime(),
-                defaultConfig.saveOnStop,
-                defaultConfig.loadOnStartup,
-                world.getSpawnLocation(),
-                Difficulty.valueOf(world.getDifficulty().name()),
-                world.getAllowMonsters(),
-                world.getAllowAnimals(),
-                false,
-                WorldType.NORMAL,
-                world.getEnvironment(),
-                gameruleMap
-        );
+        return configBuilder.build();
     }
 
     public @NotNull String spawnString() {
         return locationToString(spawn());
-    }
-
-    public @NotNull Config withSpawnPos(Location location) {
-        return new Config(this.autoSaveIntervalTicks, this.time, this.saveOnStop, this.loadOnStartup, location, this.difficulty, this.allowMonsters, this.allowAnimals, this.async, this.worldType, this.environment, this.gamerules);
     }
 
     public static @NotNull Config readFromConfig(FileConfiguration config, World world) {
@@ -135,13 +121,11 @@ public record Config(
             WorldType worldType = WorldType.valueOf(config.getString(prefix + "worldType", defaultConfig.worldType.name()));
             World.Environment environment = World.Environment.valueOf(config.getString(prefix + "environment", defaultConfig.environment.name()));
 
-
             List<Map<?, ?>> gamerules = config.getMapList(prefix + "gamerules");
 
             Map<String, Object> gamerulesMap = Config.convertYmlGamerules(gamerules);
 
             if (gamerules.isEmpty()) gamerulesMap.putAll(defaultConfig.gamerules);
-
 
             return new Config(
                     autoSaveIntervalTicks,
@@ -262,4 +246,109 @@ public record Config(
         return gamerules;
     }
 
+    public Builder toBuilder() {
+        return new Builder(this);
+    }
+
+    @SuppressWarnings("unused")
+    public static final class Builder {
+        private int autoSaveIntervalTicks;
+        private long time;
+        private boolean saveOnStop;
+        private boolean loadOnStartup;
+        private @NotNull Location spawn;
+        private @NotNull Difficulty difficulty;
+        private boolean allowMonsters;
+        private boolean allowAnimals;
+        private boolean async;
+        private @NotNull WorldType worldType;
+        private @NotNull World.Environment environment;
+        private @NotNull Map<String, Object> gamerules;
+
+        private Builder(Config record) {
+            this.autoSaveIntervalTicks = record.autoSaveIntervalTicks;
+            this.time = record.time;
+            this.saveOnStop = record.saveOnStop;
+            this.loadOnStartup = record.loadOnStartup;
+            this.spawn = record.spawn;
+            this.difficulty = record.difficulty;
+            this.allowMonsters = record.allowMonsters;
+            this.allowAnimals = record.allowAnimals;
+            this.async = record.async;
+            this.worldType = record.worldType;
+            this.environment = record.environment;
+            this.gamerules = record.gamerules;
+        }
+
+        public Builder autoSaveIntervalTicks(int autoSaveIntervalTicks) {
+            this.autoSaveIntervalTicks = autoSaveIntervalTicks;
+            return this;
+        }
+
+        public Builder time(long time) {
+            this.time = time;
+            return this;
+        }
+
+        public Builder saveOnStop(boolean saveOnStop) {
+            this.saveOnStop = saveOnStop;
+            return this;
+        }
+
+        public Builder loadOnStartup(boolean loadOnStartup) {
+            this.loadOnStartup = loadOnStartup;
+            return this;
+        }
+
+        public Builder spawn(@NotNull Location spawn) {
+            this.spawn = Objects.requireNonNull(spawn, "Null spawn");
+            return this;
+        }
+
+        public Builder difficulty(@NotNull Difficulty difficulty) {
+            this.difficulty = Objects.requireNonNull(difficulty, "Null difficulty");
+            return this;
+        }
+
+        public Builder allowMonsters(boolean allowMonsters) {
+            this.allowMonsters = allowMonsters;
+            return this;
+        }
+
+        public Builder allowAnimals(boolean allowAnimals) {
+            this.allowAnimals = allowAnimals;
+            return this;
+        }
+
+        public Builder async(boolean async) {
+            this.async = async;
+            return this;
+        }
+
+        public Builder worldType(@NotNull WorldType worldType) {
+            this.worldType = Objects.requireNonNull(worldType, "Null worldType");
+            return this;
+        }
+
+        public Builder environment(@NotNull World.Environment environment) {
+            this.environment = Objects.requireNonNull(environment, "Null environment");
+            return this;
+        }
+
+        public Builder gamerules(@NotNull Map<String, Object> gamerules) {
+            this.gamerules = gamerules;
+            return this;
+        }
+
+        public Builder gamerule(@NotNull String gameruleKey, @NotNull Object gameruleValue) {
+            this.gamerules.put(gameruleKey, gameruleValue);
+            return this;
+        }
+
+        public Config build() {
+            return new Config(this.autoSaveIntervalTicks, this.time, this.saveOnStop, this.loadOnStartup,
+                    this.spawn, this.difficulty, this.allowMonsters, this.allowAnimals, this.async, this.worldType,
+                    this.environment, this.gamerules);
+        }
+    }
 }

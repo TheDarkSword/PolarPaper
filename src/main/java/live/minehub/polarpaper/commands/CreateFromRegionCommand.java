@@ -4,20 +4,23 @@ import com.mojang.brigadier.Command;
 import com.mojang.brigadier.context.CommandContext;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 import live.minehub.polarpaper.*;
+import live.minehub.polarpaper.schematic.Schematic;
 import live.minehub.polarpaper.source.FilePolarSource;
-import live.minehub.polarpaper.util.CoordConversion;
+import live.minehub.polarpaper.userdata.WorldUserData;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
-import org.bukkit.Chunk;
 import org.bukkit.World;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.bukkit.persistence.PersistentDataContainer;
+import org.bukkit.persistence.PersistentDataType;
+import org.joml.Vector3i;
 
-public class ConvertCommand {
+public class CreateFromRegionCommand {
 
     protected static int run(CommandContext<CommandSourceStack> ctx) {
         return convert(ctx);
@@ -29,73 +32,51 @@ public class ConvertCommand {
         if (!(sender instanceof Player player)) return Command.SINGLE_SUCCESS;
 
         World bukkitWorld = player.getWorld();
-        String worldName = bukkitWorld.getName();
-
-        PolarWorld polarWorld = PolarWorld.fromWorld(bukkitWorld);
-        if (polarWorld != null) {
-            ctx.getSource().getSender().sendMessage(
-                    Component.text()
-                            .append(Component.text("World '", NamedTextColor.RED))
-                            .append(Component.text(worldName, NamedTextColor.RED))
-                            .append(Component.text("' is already converted! ", NamedTextColor.RED))
-                            .append(Component.text("Use ", NamedTextColor.RED))
-                            .append(Component.text("/polar save ", NamedTextColor.WHITE))
-                            .append(Component.text(worldName, NamedTextColor.WHITE))
-            );
-            return Command.SINGLE_SUCCESS;
-        }
 
         String newWorldName = ctx.getArgument("newworldname", String.class);
-        Integer chunkRadius = ctx.getArgument("chunkradius", Integer.class);
-
-        World newBukkitWorld = Bukkit.getWorld(newWorldName);
-        if (newBukkitWorld != null) {
-            ctx.getSource().getSender().sendMessage(
-                    Component.text()
-                            .append(Component.text("World '", NamedTextColor.RED))
-                            .append(Component.text(newBukkitWorld.getName(), NamedTextColor.RED))
-                            .append(Component.text("' already exists!", NamedTextColor.RED))
-            );
-            return Command.SINGLE_SUCCESS;
-        }
-
-        Chunk playerChunk = player.getChunk();
 
         long before = System.nanoTime();
 
         ctx.getSource().getSender().sendMessage(
                 Component.text()
-                        .append(Component.text("Converting '", NamedTextColor.GRAY))
+                        .append(Component.text("Creating world '", NamedTextColor.GRAY))
                         .append(Component.text(newWorldName, NamedTextColor.GRAY))
-                        .append(Component.text("'...", NamedTextColor.GRAY))
+                        .append(Component.text("' from selected region...", NamedTextColor.GRAY))
         );
 
-        Polar.updateConfig(bukkitWorld, newWorldName);
+        PolarWorld polarWorld = new PolarWorld((byte)-4, (byte)19);
 
-        int minHeight = bukkitWorld.getMinHeight();
-        int maxHeight = bukkitWorld.getMaxHeight() - 1;
-        PolarWorld newPolarWorld = new PolarWorld(
-                (byte) CoordConversion.sectionIndex(minHeight),
-                (byte) CoordConversion.sectionIndex(maxHeight)
-        );
+        PersistentDataContainer data = player.getPersistentDataContainer();
+        int[] pos1Array = data.get(Schematic.POS_1_KEY, PersistentDataType.INTEGER_ARRAY);
+        int[] pos2Array = data.get(Schematic.POS_2_KEY, PersistentDataType.INTEGER_ARRAY);
+        if (pos1Array == null || pos2Array == null) {
+            ctx.getSource().getSender().sendMessage(Component.text("You need to select two corners with the polar wand!", NamedTextColor.RED));
+            return Command.SINGLE_SUCCESS;
+        }
+        Vector3i pos1 = new Vector3i(pos1Array);
+        Vector3i pos2 = new Vector3i(pos2Array);
+        BlockSelector blockSelector = BlockSelector.RegionBlockSelector.fromCorners(pos1, pos2);
 
-        int offsetX = playerChunk.getX();
-        int offsetZ = playerChunk.getZ();
+        Vector3i schemOffset = player.getLocation().toVector().toVector3i();
 
         Bukkit.getAsyncScheduler().runNow(PolarPaper.getPlugin(), (task) -> {
-            Polar.saveWorld(bukkitWorld, newPolarWorld, FilePolarSource.defaultFolder(newWorldName), PolarWorldAccess.POLAR_PAPER_FEATURES, BlockSelector.square(offsetX, offsetZ, chunkRadius));
+            polarWorld.updateChunks(bukkitWorld, PolarWorldAccess.POLAR_PAPER_FEATURES, blockSelector);
+            polarWorld.userData(WorldUserData.writeSchematicOffset(schemOffset));
+            byte[] worldBytes = PolarWriter.write(polarWorld);
+            FilePolarSource.defaultFolder(newWorldName).saveBytes(worldBytes);
+
             int ms = (int) ((System.nanoTime() - before) / 1_000_000);
             ctx.getSource().getSender().sendMessage(
                     Component.text()
                             .append(Component.text("Converted '", NamedTextColor.AQUA))
-                            .append(Component.text(worldName, NamedTextColor.AQUA))
+                            .append(Component.text(newWorldName, NamedTextColor.AQUA))
                             .append(Component.text("' in ", NamedTextColor.AQUA))
                             .append(Component.text(ms, NamedTextColor.AQUA))
                             .append(Component.text("ms. ", NamedTextColor.AQUA))
                             .append(Component.text("Use ", NamedTextColor.AQUA))
                             .append(
                                     Component.text()
-                                            .append(Component.text("/polar load ", NamedTextColor.WHITE))
+                                            .append(Component.text("/polar paste ", NamedTextColor.WHITE))
                                             .append(Component.text(newWorldName, NamedTextColor.WHITE))
                                             .clickEvent(ClickEvent.runCommand("/polar load " + newWorldName))
                                             .hoverEvent(HoverEvent.showText(Component.text("Click to run")))

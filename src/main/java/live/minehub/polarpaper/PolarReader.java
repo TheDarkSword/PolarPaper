@@ -7,6 +7,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufInputStream;
 import io.netty.buffer.Unpooled;
 import live.minehub.polarpaper.PolarSection.LightContent;
+import live.minehub.polarpaper.source.PolarSource;
 import live.minehub.polarpaper.userdata.EntityUtil;
 import live.minehub.polarpaper.util.PaletteUtil;
 import net.kyori.adventure.key.Key;
@@ -27,6 +28,14 @@ public class PolarReader {
     private static final boolean FORCE_LEGACY_NBT = Boolean.getBoolean("polar.debug.force-legacy-nbt");
     private static final int MAX_BLOCK_PALETTE_SIZE = 16 * 16 * 16;
     private static final int MAX_BIOME_PALETTE_SIZE = 8 * 8 * 8;
+
+    public static @NotNull PolarWorld read(PolarSource source) {
+        return read(source.readBytes());
+    }
+
+    public static @NotNull PolarWorld read(PolarSource source, @NotNull PolarDataConverter dataConverter) {
+        return read(source.readBytes(), dataConverter);
+    }
 
     public static @NotNull PolarWorld read(byte @NotNull [] data) {
         return read(data, PolarDataConverter.DEFAULT);

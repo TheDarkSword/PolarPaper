@@ -1,8 +1,8 @@
 package live.minehub.polarpaper;
 
 import io.papermc.paper.persistence.PersistentDataContainerView;
-import live.minehub.polarpaper.commands.SaveCommand;
 import live.minehub.polarpaper.commands.WandCommand;
+import live.minehub.polarpaper.schematic.Schematic;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.minecraft.world.level.chunk.status.ChunkStatus;
@@ -12,6 +12,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.*;
 import org.bukkit.event.entity.EntityChangeBlockEvent;
+import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.world.ChunkPopulateEvent;
@@ -92,11 +93,18 @@ public class PolarListener implements Listener {
 
     // WAND
     @EventHandler
+    public void onChangeWorld(PlayerChangedWorldEvent event) {
+        // clear wand properties
+        PersistentDataContainer data = event.getPlayer().getPersistentDataContainer();
+        data.remove(Schematic.POS_1_KEY);
+        data.remove(Schematic.POS_2_KEY);
+    }
+    @EventHandler
     public void onJoin(PlayerJoinEvent event) {
         // clear wand properties
         PersistentDataContainer data = event.getPlayer().getPersistentDataContainer();
-        data.remove(SaveCommand.POS_1_KEY);
-        data.remove(SaveCommand.POS_2_KEY);
+        data.remove(Schematic.POS_1_KEY);
+        data.remove(Schematic.POS_2_KEY);
     }
     @EventHandler
     public void onBlockBreak(BlockBreakEvent event) {
@@ -109,11 +117,11 @@ public class PolarListener implements Listener {
 
         Vector blockPos = event.getBlock().getLocation().toVector();
         int[] array = new int[] { blockPos.getBlockX(), blockPos.getBlockY(), blockPos.getBlockZ() };
-        data.set(SaveCommand.POS_1_KEY, PersistentDataType.INTEGER_ARRAY, array);
+        data.set(Schematic.POS_1_KEY, PersistentDataType.INTEGER_ARRAY, array);
 
         event.setCancelled(true);
         String formattedPos = String.format("%s, %s, %s", blockPos.getBlockX(), blockPos.getBlockY(), blockPos.getBlockZ());
-        player.sendMessage(Component.text("Set first position to " + formattedPos, NamedTextColor.AQUA));
+        player.sendMessage(Component.text("Set first corner position to " + formattedPos, NamedTextColor.AQUA));
     }
     @EventHandler
     public void onBlockBreak(PlayerInteractEvent event) {
@@ -128,11 +136,11 @@ public class PolarListener implements Listener {
 
         Vector blockPos = event.getClickedBlock().getLocation().toVector();
         int[] array = new int[] { blockPos.getBlockX(), blockPos.getBlockY(), blockPos.getBlockZ() };
-        data.set(SaveCommand.POS_2_KEY, PersistentDataType.INTEGER_ARRAY, array);
+        data.set(Schematic.POS_2_KEY, PersistentDataType.INTEGER_ARRAY, array);
 
         event.setCancelled(true);
         String formattedPos = String.format("%s, %s, %s", blockPos.getBlockX(), blockPos.getBlockY(), blockPos.getBlockZ());
-        player.sendMessage(Component.text("Set second position to " + formattedPos, NamedTextColor.AQUA));
+        player.sendMessage(Component.text("Set second corner position to " + formattedPos, NamedTextColor.AQUA));
     }
 
 }

@@ -35,7 +35,7 @@ public class CreateBlankCommand {
         Config defaultConfig = Config.getDefaultConfig(fileConfig);
         Config.writeToConfig(fileConfig, worldName, defaultConfig);
 
-        Polar.loadWorld(newPolarWorld, worldName, defaultConfig);
+        Polar.createWorld(newPolarWorld, worldName, defaultConfig);
         ctx.getSource().getSender().sendMessage(
                 Component.text()
                         .append(Component.text("Created blank world '", NamedTextColor.AQUA))

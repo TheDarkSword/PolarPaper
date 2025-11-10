@@ -1,14 +1,28 @@
 package live.minehub.polarpaper;
 
+import ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemServerLevel;
+import ca.spottedleaf.moonrise.patches.chunk_system.level.entity.ChunkEntitySlices;
+import ca.spottedleaf.moonrise.patches.chunk_system.scheduling.ChunkHolderManager;
+import ca.spottedleaf.moonrise.patches.chunk_system.scheduling.NewChunkHolder;
+import com.google.common.io.ByteArrayDataOutput;
+import com.google.common.io.ByteStreams;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
+import live.minehub.polarpaper.source.PolarSource;
 import live.minehub.polarpaper.util.CoordConversion;
+import net.minecraft.world.level.chunk.ChunkAccess;
+import net.minecraft.world.level.chunk.LevelChunkSection;
+import net.minecraft.world.level.chunk.status.ChunkStatus;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
+import org.bukkit.craftbukkit.CraftWorld;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.EntityType;
 import org.bukkit.generator.ChunkGenerator;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -93,7 +107,7 @@ public class PolarWorld {
         return compression;
     }
 
-    public void setCompression(@NotNull CompressionType compression) {
+    public void compression(@NotNull CompressionType compression) {
         this.compression = compression;
     }
 
@@ -155,6 +169,112 @@ public class PolarWorld {
         ChunkGenerator generator = world.getGenerator();
         if (!(generator instanceof PolarGenerator polarGenerator)) return null;
         return polarGenerator.getPolarWorld();
+    }
+
+    /**
+     * Updates the chunks in this PolarWorld
+     *
+     * @param world The bukkit world to retrieve the updated chunks from
+     * @see Polar#saveWorld(World, PolarSource)
+     * @see BlockSelector#ALL
+     * @see PolarWorldAccess#POLAR_PAPER_FEATURES
+     */
+    public void updateChunks(World world) {
+        updateChunks(world, PolarWorldAccess.POLAR_PAPER_FEATURES, BlockSelector.ALL);
+    }
+
+    /**
+     * Updates the chunks in this PolarWorld
+     *
+     * @param world The bukkit world to retrieve the updated chunks from
+     * @param polarWorldAccess Describes how userdata should be handled (default PolarWorldAccess.POLAR_PAPER_FEATURES)
+     * @param blockSelector Used to filter which blocks should be updated (essentially a crop)
+     * @see Polar#saveWorld(World, PolarSource)
+     * @see BlockSelector#ALL
+     * @see PolarWorldAccess#POLAR_PAPER_FEATURES
+     */
+    public void updateChunks(World world, PolarWorldAccess polarWorldAccess, BlockSelector blockSelector) {
+        // TODO: consider offsets
+        // TODO: chunk holders should probably be eventually released/removed (config option?)
+
+        ChunkSystemServerLevel chunkSystemServerLevel = ((CraftWorld) world).getHandle();
+        ChunkHolderManager chunkHolderManager = chunkSystemServerLevel.moonrise$getChunkTaskScheduler().chunkHolderManager;
+
+        for (PolarChunk chunk : new ArrayList<>(chunks())) {
+            if (!blockSelector.testChunk(chunk.x(), chunk.z())) {
+                removeChunkAt(chunk.x(), chunk.z());
+            }
+        }
+
+        for (NewChunkHolder chunkHolder : chunkHolderManager.getChunkHolders()) {
+            if (chunkHolder == null) continue;
+            ChunkAccess currentChunk = chunkHolder.getCurrentChunk();
+            if (currentChunk == null) continue;
+
+            int chunkX = chunkHolder.chunkX;
+            int chunkZ = chunkHolder.chunkZ;
+
+            if (!blockSelector.testChunk(chunkX, chunkZ)) continue;
+
+            ChunkEntitySlices entityChunk = chunkHolder.getEntityChunk();
+            boolean unsaved = blockSelector == BlockSelector.ALL || currentChunk.isUnsaved(); // if selector is not ALL blocks, we need to update
+
+            boolean onlyPlayers = true;
+            if (entityChunk != null) {
+                for (net.minecraft.world.entity.Entity nmsEntity : entityChunk.getAllEntities()) {
+                    Entity entity = nmsEntity.getBukkitEntity();
+                    if (entity.getType() != EntityType.PLAYER) {
+                        onlyPlayers = false;
+                        break;
+                    }
+                }
+            }
+
+            if (onlyPlayers) { // if contains no entities or the entities are all players (only difference is blocks)
+                if (!unsaved) continue;
+
+                boolean allEmpty = true;
+                for (LevelChunkSection section : currentChunk.getSections()) {
+                    if (!section.hasOnlyAir()) {
+                        allEmpty = false;
+                        break;
+                    }
+                }
+
+                if (allEmpty) {
+                    // check if the chunk has generated the surface yet
+                    // (otherwise we don't know if it's blank because its really blank, or because it hasn't generated yet)
+                    if (currentChunk.getPersistedStatus().isOrBefore(ChunkStatus.SURFACE)) continue;
+                    removeChunkAt(chunkX, chunkZ);
+                    currentChunk.tryMarkSaved();
+                    continue;
+                }
+            } else {
+                if (!unsaved) { // if only difference is entities
+                    PolarChunk prevChunk = chunkAt(chunkX, chunkZ);
+                    if (prevChunk == null) continue;
+
+                    // only update entities
+                    ByteArrayDataOutput userDataOutput = ByteStreams.newDataOutput();
+                    List<net.minecraft.world.entity.Entity> allEntities = entityChunk.getAllEntities();
+                    Entity[] entitiesArray = new Entity[allEntities.size()];
+                    for (int i = 0; i < allEntities.size(); i++) {
+                        entitiesArray[i] = allEntities.get(i).getBukkitEntity();
+                    }
+                    polarWorldAccess.saveChunkData(currentChunk, currentChunk.blockEntities.entrySet(), entitiesArray, userDataOutput);
+                    byte[] userData = userDataOutput.toByteArray();
+
+                    updateChunkAt(chunkX, chunkZ, prevChunk.withUserData(userData));
+
+                    continue;
+                }
+            }
+
+            PolarChunk polarChunk = PolarChunk.convert(chunkHolder, polarWorldAccess, blockSelector);
+            updateChunkAt(chunkX, chunkZ, polarChunk);
+
+            currentChunk.tryMarkSaved();
+        }
     }
 
 }

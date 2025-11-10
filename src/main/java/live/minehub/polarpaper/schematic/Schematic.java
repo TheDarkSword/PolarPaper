@@ -14,6 +14,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.LevelChunkSection;
 import org.bukkit.Bukkit;
+import org.bukkit.NamespacedKey;
 import org.bukkit.World;
 import org.bukkit.craftbukkit.CraftWorld;
 import org.bukkit.craftbukkit.block.data.CraftBlockData;
@@ -23,6 +24,9 @@ import java.util.HashSet;
 import java.util.Set;
 
 public class Schematic {
+
+    public static final NamespacedKey POS_1_KEY = new NamespacedKey("polarpaper", "pos1");
+    public static final NamespacedKey POS_2_KEY = new NamespacedKey("polarpaper", "pos2");
 
     public static void paste(PolarWorld polarWorld, World world, BlockModifier blockModifier, IgnoreAir ignoreAir) {
         CraftWorld craftWorld = (CraftWorld) world;

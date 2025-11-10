@@ -32,7 +32,9 @@ public class SetSpawnCommand {
         if (polarWorld == null) {
             ctx.getSource().getSender().sendMessage(
                     Component.text()
-                            .append(Component.text("Usage: /polar setspawn (while in a polar world)", NamedTextColor.RED))
+                            .append(Component.text("World '", NamedTextColor.RED))
+                            .append(Component.text(bukkitWorld.getName(), NamedTextColor.RED))
+                            .append(Component.text("' is not a polar world!", NamedTextColor.RED))
             );
             return Command.SINGLE_SUCCESS;
         }
@@ -47,7 +49,7 @@ public class SetSpawnCommand {
             spawnPos.setPitch(Math.round(spawnPos.getPitch()));
         }
 
-        Config newConfig = config.withSpawnPos(spawnPos);
+        Config newConfig = config.toBuilder().spawn(spawnPos).build();
 
         Config.writeToConfig(PolarPaper.getPlugin().getConfig(), bukkitWorld.getName(), newConfig);
 

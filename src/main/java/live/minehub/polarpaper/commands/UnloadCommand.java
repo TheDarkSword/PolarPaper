@@ -71,6 +71,7 @@ public class UnloadCommand {
                             .append(Component.text("'...", NamedTextColor.GRAY))
             );
 
+            Polar.updateConfig(bukkitWorld, bukkitWorld.getName()); // config should only be updated synchronously
             Bukkit.getAsyncScheduler().runNow(PolarPaper.getPlugin(), (task) -> {
                 Polar.saveWorldToFile(bukkitWorld);
                 bukkitUnload(ctx, bukkitWorld);
