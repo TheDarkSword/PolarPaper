@@ -59,6 +59,8 @@ public class CreateFromRegionCommand {
 
         Vector3i schemOffset = player.getLocation().toVector().toVector3i();
 
+        // TODO: center the world
+
         Bukkit.getAsyncScheduler().runNow(PolarPaper.getPlugin(), (task) -> {
             polarWorld.updateChunks(bukkitWorld, PolarWorldAccess.POLAR_PAPER_FEATURES, blockSelector);
             polarWorld.userData(WorldUserData.writeSchematicOffset(schemOffset));
@@ -73,10 +75,19 @@ public class CreateFromRegionCommand {
                             .append(Component.text("' in ", NamedTextColor.AQUA))
                             .append(Component.text(ms, NamedTextColor.AQUA))
                             .append(Component.text("ms. ", NamedTextColor.AQUA))
-                            .append(Component.text("Use ", NamedTextColor.AQUA))
+                            .append(Component.text("\nUse ", NamedTextColor.AQUA))
                             .append(
                                     Component.text()
                                             .append(Component.text("/polar paste ", NamedTextColor.WHITE))
+                                            .append(Component.text(newWorldName, NamedTextColor.WHITE))
+                                            .clickEvent(ClickEvent.runCommand("/polar paste " + newWorldName))
+                                            .hoverEvent(HoverEvent.showText(Component.text("Click to run")))
+                                            .decorate(TextDecoration.UNDERLINED))
+                            .append(Component.text(" to paste it now", NamedTextColor.AQUA))
+                            .append(Component.text("\nUse ", NamedTextColor.AQUA))
+                            .append(
+                                    Component.text()
+                                            .append(Component.text("/polar load ", NamedTextColor.WHITE))
                                             .append(Component.text(newWorldName, NamedTextColor.WHITE))
                                             .clickEvent(ClickEvent.runCommand("/polar load " + newWorldName))
                                             .hoverEvent(HoverEvent.showText(Component.text("Click to run")))

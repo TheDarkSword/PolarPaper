@@ -1,20 +1,26 @@
 package live.minehub.polarpaper.schematic;
 
-import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.block.state.BlockState;
+import org.bukkit.Location;
 import org.jetbrains.annotations.NotNull;
+import org.joml.Vector3d;
 import org.joml.Vector3i;
 
 public interface BlockModifier {
     void modify(Vector3i pos, BlockState blockState);
     void modify(Vector3i pos);
+    void modifyEntity(Location location);
 
     record PosRot(Vector3i offset, Rotation rotation) implements BlockModifier {
         @Override
         public void modify(Vector3i pos, BlockState blockState) {
             if (rotation != Rotation.NONE) {
-                blockState.rotate(rotation);
-                rotatePos(pos, rotation);
+                blockState.rotate(rotation.getMcRot());
+                Vector3d vec = new Vector3d(pos);
+                rotatePos(vec, rotation);
+                pos.x = (int) vec.x;
+                pos.y = (int) vec.y;
+                pos.z = (int) vec.z;
             }
             pos.add(offset);
         }
@@ -22,28 +28,45 @@ public interface BlockModifier {
         @Override
         public void modify(Vector3i pos) {
             if (rotation != Rotation.NONE) {
-                rotatePos(pos, rotation);
+                Vector3d vec = new Vector3d(pos);
+                rotatePos(vec, rotation);
+                pos.x = (int) vec.x;
+                pos.y = (int) vec.y;
+                pos.z = (int) vec.z;
             }
             pos.add(offset);
         }
 
-        public static void rotatePos(@NotNull Vector3i point, @NotNull Rotation rotation) {
+        @Override
+        public void modifyEntity(Location pos) {
+            if (rotation != Rotation.NONE) {
+                Vector3d vec = new Vector3d(pos.x(), pos.y(), pos.z());
+                rotatePos(vec, rotation);
+                pos.setX(vec.x);
+                pos.setY(vec.y);
+                pos.setZ(vec.z);
+                pos.setYaw(pos.getYaw() + rotation.toDegrees());
+            }
+            pos.add(offset.x(), offset.y(), offset.z());
+        }
+
+        public static void rotatePos(@NotNull Vector3d point, @NotNull Rotation rotation) {
             switch (rotation) {
                 case CLOCKWISE_90 -> {
-                    int x = -point.z;
-                    int z = point.x;
+                    double x = -point.z;
+                    double z = point.x;
                     point.x = x;
                     point.z = z;
                 }
                 case CLOCKWISE_180 -> {
-                    int x = -point.x;
-                    int z = -point.z;
+                    double x = -point.x;
+                    double z = -point.z;
                     point.x = x;
                     point.z = z;
                 }
-                case COUNTERCLOCKWISE_90 -> {
-                    int x = point.z;
-                    int z = -point.x;
+                case CLOCKWISE_270 -> {
+                    double x = point.z;
+                    double z = -point.x;
                     point.x = x;
                     point.z = z;
                 }

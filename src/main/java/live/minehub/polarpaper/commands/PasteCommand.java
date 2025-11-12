@@ -7,11 +7,11 @@ import live.minehub.polarpaper.PolarPaper;
 import live.minehub.polarpaper.PolarReader;
 import live.minehub.polarpaper.PolarWorld;
 import live.minehub.polarpaper.schematic.BlockModifier;
+import live.minehub.polarpaper.schematic.Rotation;
 import live.minehub.polarpaper.schematic.Schematic;
 import live.minehub.polarpaper.util.ExceptionUtil;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
-import net.minecraft.world.level.block.Rotation;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
@@ -46,12 +46,13 @@ public class PasteCommand {
 
         String rotationString = ctx.getArgument("rotation", String.class);
 
-        try {
-            return paste(ctx, Rotation.valueOf(rotationString.toUpperCase()));
-        } catch (IllegalArgumentException ignored) {
+        Rotation rotation = Rotation.fromFriendlyName(rotationString.toLowerCase());
+        if (rotation == null) {
             ctx.getSource().getSender().sendMessage(Component.text("Invalid rotation '" + rotationString + "'", NamedTextColor.RED));
             return Command.SINGLE_SUCCESS;
         }
+
+        return paste(ctx, rotation);
     }
 
     private static int paste(CommandContext<CommandSourceStack> ctx, Rotation rotation) {

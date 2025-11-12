@@ -6,6 +6,7 @@ import live.minehub.polarpaper.PolarChunk;
 import live.minehub.polarpaper.PolarPaper;
 import live.minehub.polarpaper.PolarSection;
 import live.minehub.polarpaper.PolarWorld;
+import live.minehub.polarpaper.userdata.EntityUtil;
 import live.minehub.polarpaper.userdata.WorldUserData;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.ChunkPos;
@@ -14,13 +15,18 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.LevelChunkSection;
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.NamespacedKey;
 import org.bukkit.World;
 import org.bukkit.craftbukkit.CraftWorld;
 import org.bukkit.craftbukkit.block.data.CraftBlockData;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.Painting;
 import org.joml.Vector3i;
 
+import java.nio.ByteBuffer;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 public class Schematic {
@@ -46,6 +52,8 @@ public class Schematic {
                 pasteSection(section, chunkHolderManager, blockModifier, blockOffset, ignoreAir);
                 i++;
             }
+
+            handleUserData(world, chunk, blockModifier, offset);
         }
 
         Set<ChunkPos> chunksToRefresh = new HashSet<>();
@@ -69,6 +77,39 @@ public class Schematic {
             world.refreshChunk(c.x, c.z);
         }
         serverLevel.getChunkSource().getLightEngine().starlight$serverRelightChunks(chunksToRefresh, a -> {}, a -> {});
+    }
+
+    private static void handleUserData(World world, PolarChunk chunk, BlockModifier blockModifier, Vector3i offset) {
+        final var bb = ByteBuffer.wrap(chunk.userData());
+        byte version = bb.get();
+        List<PolarChunk.Entity> entities = EntityUtil.getEntities(bb);
+
+        for (PolarChunk.Entity polarEntity : entities) {
+            var x = polarEntity.x();
+            var y = polarEntity.y();
+            var z = polarEntity.z();
+            var yaw = polarEntity.yaw();
+            var pitch = polarEntity.pitch();
+            var bytes = polarEntity.bytes();
+
+            Entity entity;
+            try {
+                entity = EntityUtil.bytesToEntity(world, bytes);
+                if (entity == null) continue;
+            } catch (Exception e) {
+                continue;
+            }
+
+            if (entity instanceof Painting painting) {
+                if (painting.getArt().getBlockHeight() % 2 == 0) { // strange spigot bug
+                    y--;
+                }
+            }
+
+            Location loc = new Location(world, x + chunk.x() * 16, y, z + chunk.z() * 16, yaw, pitch).subtract(offset.x, offset.y, offset.z);
+            blockModifier.modifyEntity(loc);
+            entity.spawnAt(loc);
+        }
     }
 
     private static void pasteSection(PolarSection polarSection, ChunkHolderManager chunkHolderManager, BlockModifier blockModifier, Vector3i offset, IgnoreAir ignoreAir) {

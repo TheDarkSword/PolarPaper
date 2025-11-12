@@ -8,7 +8,7 @@ plugins {
     alias(libs.plugins.hangar.publish)
 }
 
-val developmentVersion = "${libs.versions.minecraft.get()}.6"
+val developmentVersion = "${libs.versions.minecraft.get()}.7"
 
 version = getVersion()
 group = "live.minehub"
@@ -62,7 +62,6 @@ publishing {
     publications {
         create<MavenPublication>("shadow") {
             from(components["java"])
-            artifact(tasks.named("sourcesJar"))
         }
     }
 }
