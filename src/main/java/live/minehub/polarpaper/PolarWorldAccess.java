@@ -66,6 +66,10 @@ public interface PolarWorldAccess {
                 var pitch = polarEntity.pitch();
                 var bytes = polarEntity.bytes();
 
+                // fix for previous version and also sanity check :)
+                if (x < 0) x += 16;
+                if (z < 0) z += 16;
+
                 Entity entity;
                 try {
                     entity = EntityUtil.bytesToEntity(chunk.getWorld(), bytes);
