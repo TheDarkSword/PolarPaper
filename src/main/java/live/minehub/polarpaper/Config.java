@@ -123,9 +123,11 @@ public record Config(
 
             List<Map<?, ?>> gamerules = config.getMapList(prefix + "gamerules");
 
-            Map<String, Object> gamerulesMap = Config.convertYmlGamerules(gamerules);
+            Map<String, Object> gamerulesMap = new HashMap<>();
+            Map<String, Object> convertedGamerules = Config.convertYmlGamerules(gamerules);
 
-            if (gamerules.isEmpty()) gamerulesMap.putAll(defaultConfig.gamerules);
+            gamerulesMap.putAll(defaultConfig.gamerules());
+            gamerulesMap.putAll(convertedGamerules);
 
             return new Config(
                     autoSaveIntervalTicks,

@@ -107,8 +107,8 @@ public interface PolarWorldAccess {
                 if (entityBytes == null) continue;
                 Location entityPos = entity.getLocation();
 
-                final var x = (entityPos.x() + 16) % 16;
-                final var z = (entityPos.z() + 16) % 16;
+                final var x = ((entityPos.x() % 16) + 16) % 16;
+                final var z = ((entityPos.z() % 16) + 16) % 16;
 
                 polarEntities.add(new PolarChunk.Entity(
                         x,
